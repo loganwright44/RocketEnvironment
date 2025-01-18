@@ -43,11 +43,14 @@ class Quaternion:
     elif angle_vector is not None:
       if self.validate_angle_vector(angle_vector=angle_vector):
         θ = angle_vector[0]
-        vector = angle_vector[1]
-        if (N := np.linalg.norm(angle_vector[1])) > 1e-4:
-          vector /= np.linalg.norm(angle_vector[1])
+        #vector = angle_vector[1]
+        #if (N := np.linalg.norm(angle_vector[1])) > 1e-4:
+        #  vector /= np.linalg.norm(angle_vector[1])
+        
+        # Turns out, a more robust form replaces sin with sinc which is computationally continuous while normalized sin alone is not computationally possible
         x, y, z = angle_vector[1]
-        self.q = (np.cos(θ / 2), np.sin(θ / 2) * x * I, np.sin(θ / 2) * y * J, np.sin(θ / 2) * z * K)
+        self.q = (np.cos(θ / 2), 0.5 * np.sinc(θ / 2) * x * I, 0.5 * np.sinc(θ / 2) * y * J, 0.5 * np.sinc(θ / 2) * z * K)
+        self.normalize()
     
     else:
       self.q = (1.0, 0 * I, 0 * J, 0 * K)
@@ -109,8 +112,17 @@ class Quaternion:
     else:
       raise TypeError("Unsupported type for multiplication.")
   
-  def __rmul__(self, other):
+  def __rmul__(self, other) -> Quaternion:
     return self.__mul__(other=other)
+  
+  def __truediv__(self, other) -> Quaternion:
+    if isinstance(other, (int, float)):
+      if other == 0 or other == 0.0:
+        raise ZeroDivisionError()
+      else:
+        return Quaternion(elements=(self.q[w] / other, self.q[i] / other, self.q[j] / other, self.q[k] / other))
+    else:
+      raise TypeError("Unsupported type for division.")
   
   def get_vector(self) -> Vector:
     return Vector(elements=(self.q[i][0], self.q[j][1], self.q[k][2]))
@@ -239,10 +251,11 @@ def exponentiateQuaternion(q: Quaternion, ε: float = 1e-6) -> Quaternion:
   """
   a = q.get_scalar()
   v = q.get_vector()
-  θ = v.get_magnitude() * 2.0 # times 2 because the constructor for a quaternion class uses the half-angle quaternion construction
+  θ = v.get_magnitude()
+  
   if θ > ε:
-    v_hat = v.get_unit()
-    return np.exp(a) * Quaternion(angle_vector=(θ, v_hat), is_vector=True)
+    #v_hat = v.get_unit() -> No longer need to normalize the vector part of AngleVector() type for Quaternion() constructor
+    return np.exp(a) * Quaternion(angle_vector=(θ, v.v), is_vector=True)
   else:
     return np.exp(a) * Quaternion(default=True) # return the zero quaternion (1, 0, 0, 0) i.e. no rotation
 
