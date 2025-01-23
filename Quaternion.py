@@ -43,14 +43,13 @@ class Quaternion:
     elif angle_vector is not None:
       if self.validate_angle_vector(angle_vector=angle_vector):
         θ = angle_vector[0]
-        #vector = angle_vector[1]
-        #if (N := np.linalg.norm(angle_vector[1])) > 1e-4:
-        #  vector /= np.linalg.norm(angle_vector[1])
-        
-        # Turns out, a more robust form replaces sin with sinc which is computationally continuous while normalized sin alone is not computationally possible
-        x, y, z = angle_vector[1]
-        self.q = (np.cos(θ / 2), 0.5 * np.sinc(θ / 2) * x * I, 0.5 * np.sinc(θ / 2) * y * J, 0.5 * np.sinc(θ / 2) * z * K)
-        self.normalize()
+        vector = angle_vector[1]
+        if (N := np.linalg.norm(vector)) > 1e-4:
+          vector /= N
+          x, y, z = vector[0], vector[1], vector[2]
+          self.q = (np.cos(θ /2), x * np.sin(θ / 2) * I, y * np.sin(θ / 2) * J, z * np.sin(θ / 2) * K)
+        else:
+          self.q = (1.0, 0 * I, 0 * J, 0 * K)
     
     else:
       self.q = (1.0, 0 * I, 0 * J, 0 * K)
@@ -82,7 +81,6 @@ class Quaternion:
   
   def normalize(self) -> None:
     norm = np.sqrt(self.q[w] * self.q[w] + np.dot((self.q[i] + self.q[j] + self.q[k]), (self.q[i] + self.q[j] + self.q[k])))
-    
     self.q = tuple([component / norm for component in self.q])
   
   def get_conjugate(self):
@@ -98,7 +96,7 @@ class Quaternion:
   
   def __str__(self):
     _sum = self.q[i] + self.q[j] + self.q[k]
-    return f"q = ( {self.q[w]:.4f}, {_sum[0]:.4f} i, {_sum[1]:.4f} j, {_sum[2]:.4f} k ) \n|q| = {((self.q[w] * self.q[w] + np.dot(_sum, _sum)) ** 0.5):.4f} \n"
+    return f"q = ( {self.q[w]:.4f}, {_sum[0]:.4f} i, {_sum[1]:.4f} j, {_sum[2]:.4f} k ) \t|q| = {((self.q[w] * self.q[w] + np.dot(_sum, _sum)) ** 0.5):.4f}"
   
   def __add__(self, q: Quaternion) -> Quaternion:
     return Quaternion(elements=(self.q[w] + q.q[w], self.q[i] + q.q[i], self.q[j] + q.q[j], self.q[k] + q.q[k]), default=False, is_vector=False)
@@ -110,7 +108,7 @@ class Quaternion:
     if isinstance(other, (int, float)):
       return Quaternion(elements=(self.q[w] * other, self.q[i] * other, self.q[j] * other, self.q[k] * other), default=False, is_vector=True)
     else:
-      raise TypeError("Unsupported type for multiplication.")
+      raise TypeError("Unsupported type for `multiplication`")
   
   def __rmul__(self, other) -> Quaternion:
     return self.__mul__(other=other)
@@ -122,13 +120,30 @@ class Quaternion:
       else:
         return Quaternion(elements=(self.q[w] / other, self.q[i] / other, self.q[j] / other, self.q[k] / other))
     else:
-      raise TypeError("Unsupported type for division.")
+      raise TypeError("Unsupported type for `division`")
+    
+  def __iadd__(self, other):
+    if isinstance(other, Quaternion):
+      return Quaternion(elements=(self.q[w] + other.q[w], self.q[i] + other.q[i], self.q[j] + other.q[j], self.q[k] + other.q[k]), is_vector=True)
+    else:
+      raise AssertionError("Unsupported type for addition on `Quaternion`")
   
   def get_vector(self) -> Vector:
     return Vector(elements=(self.q[i][0], self.q[j][1], self.q[k][2]))
   
   def get_scalar(self) -> float:
     return self.q[w]
+  
+  def get_rotation_matrix(self) -> NDArray:
+    _identity = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], np.float32)
+    _skewSymmetric = np.array([
+      [0, -self.q[k][k - 1], self.q[j][j - 1]],
+      [self.q[k][k - 1], 0, -self.q[i][i - 1]],
+      [-self.q[j][j - 1], self.q[i][i - 1], 0]
+    ], dtype=np.float32)
+    
+    _rotationMatrix = _identity + 2 * self.q[w] * _skewSymmetric + 2 * np.matmul(_skewSymmetric, _skewSymmetric)
+    return _rotationMatrix
 
 
 class Vector:
@@ -156,7 +171,7 @@ class Vector:
     return np.copy(self.v) / self.get_magnitude()
 
   def __str__(self):
-    return f"v = ( {self.v[0]:.4f}, {self.v[1]:.4f}, {self.v[2]:.4f} ) \n|v| = {(np.dot(self.v, self.v) ** 0.5):.4f} \n"
+    return f"v = ( {self.v[0]:.4f}, {self.v[1]:.4f}, {self.v[2]:.4f} ) \t|v| = {(np.dot(self.v, self.v) ** 0.5):.4f} \n"
   
   def __add__(self, v: Vector) -> Vector:
     return Vector(elements=(self.v[0] + v.v[0], self.v[1] + v.v[1], self.v[2] + v.v[2]))
@@ -165,10 +180,16 @@ class Vector:
     if isinstance(other, (int, float)):
       return Vector(elements=(self.v[0] * other, self.v[1] * other, self.v[2] * other))
     else:
-      raise AssertionError("Invalid type attempted to multiply with type `Vector`.")
+      raise AssertionError("Invalid type attempted to multiply with type `Vector`")
   
   def __rmul__(self, other):
     return self.__mul__(other=other)
+  
+  def __iadd__(self, other):
+    if isinstance(other, Vector):
+      return Vector(elements=(self.v[0] + other.v[0], self.v[1] + other.v[1], self.v[2] + other.v[2]))
+    else:
+      raise AssertionError(f"Vector cannot be added to another variable of type {type(other)}")
 
 
 # This function will stay in this file locally and is not shared with external imports

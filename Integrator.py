@@ -12,32 +12,41 @@ def f(dt: float, omega: Vector) -> Quaternion:
       omega (Vector): angular velocity vector in inertial frame
 
   Returns:
-      Quaternion: the infinitesimal attitude quaternion to apply to q
+      Quaternion: the infinitesimal attitude adjustment quaternion to apply to q
   """
   omega_q = omega.extend_to_quaternion() / 2
   
   return exponentiateQuaternion(q=omega_q * dt, ε=dt * 1e-2)
 
-def solver(omega: Vector, q: Quaternion, dt: float):
+def solver(omega: Vector, alpha: Vector, q: Quaternion, dt: float, display: bool = False, index: int = None) -> Tuple[Quaternion, Vector]:
   """ A Runge-Kutta 3rd order method to compute the next quaternion state given the angular velocity in the inertal frame
 
   Args:
       omega (Vector): angular velocity in the inertial frame
+      alpha (Vector): angular acceleration vector in inertial frame
       q (Quaternion): a quaternion to accumulate a change dq due to omega
       dt (float): a small time step
+      display (bool): choose to display the qFinal and omega_q. Defaults to False
+      index (int): the iteration step number. Defaults to None
+  
+  Returns:
+      Tuple[Quaternion, Vector]: new attitude quaternion q after infinitesimal rotation, and new omega after alpha integration
   """
-  coefficients = [1/6, 1/3, 1/3, 1/6]
-  qs = []
+  omega += alpha * dt
+  #Δq = 0.5 * hamiltonProduct(q1=omega.extend_to_quaternion() * dt, q2=q)
+  #print(Δq)
+  #qFinal = q + Δq
+  #qFinal.normalize()
   
-  for c in coefficients:
-    qs.append(f(dt=dt * c, omega=omega))
+  qFinal = hamiltonProduct(q1=exponentiateQuaternion(q=omega.extend_to_quaternion() * dt, ε=dt * 1e-3), q2=q)
   
-  Δq = Quaternion(default=True)
+  if display:
+    if index is not None:
+      print(index, qFinal, omega.extend_to_quaternion())
+    else:
+      print(qFinal, omega.extend_to_quaternion())
   
-  for rotation in qs:
-    Δq = hamiltonProduct(q1=rotation, q2=Δq)
-  
-  return hamiltonProduct(q1=Δq, q2=q)
+  return qFinal, omega
 
 
 __all__ = [
