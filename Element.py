@@ -7,38 +7,26 @@ from abc import ABC, abstractmethod
 from Quaternion import *
 
 class Element(ABC):
-  def __init__(self):
+  _id_counter: int = 0
+  def __init__(self, is_static: bool, **kwargs):
+    # assign a unique id to each instance of this class
+    self.id = Element._id_counter
+    Element._id_counter += 1
+    
+    self.is_static = is_static
     self.mass: float
-    self.position: NDArray
-    self.orientation: Quaternion
     self.I: NDArray
+    self.m_dot: float = None
+    
+    if is_static:
+      if not "min_mass" in kwargs or not "duration" in kwargs:
+        raise SyntaxError("If a mass element is dynamic (not static), `min_mass: float` and `duration: float` must be passed as arguments to the constructor of the Element subclass")
+      self.min_mass = kwargs["min_mass"]
+      self.duration = kwargs["duration"]
+      self.m_dot = (self.mass - self.min_mass) / self.duration
   
   @abstractmethod
   def set_inertia_tensor(self) -> None:
-    """ overwrite in derived child classes
-    """
-    pass
-  
-  @abstractmethod
-  def recalculate_inertia_tensor(self) -> None:
-    """ overwrite in derived child classes
-    """
-    pass
-  
-  @abstractmethod
-  def translate(self, position: NDArray) -> None:
-    """ overwrite in derived child classes
-    """
-    pass
-  
-  @abstractmethod
-  def rotate(self, quaternion: Quaternion) -> None:
-    """ overwrite in derived child classes
-    """
-    pass
-  
-  @abstractmethod
-  def parallel_axis_shift(self, center_of_mass: NDArray) -> None:
     """ overwrite in derived child classes
     """
     pass
@@ -50,16 +38,26 @@ class Element(ABC):
         NDArray: the inertia tensor in body-centered coordinates
     """
     return self.I
+  
+  def get_mass(self) -> float:
+    """ returns the current mass of the element
+
+    Returns:
+        float: mass of the element
+    """
+    return self.mass
+  
+  def is_dynamic(self) -> bool:
+    return not self.is_static
+  
 
 
 class Cylinder(Element):
-  def __init__(self, radius: float, height: float, mass: float, position: NDArray, orientation: Quaternion):
-    super().__init__()
+  def __init__(self, radius: float, height: float, mass: float, is_static: bool, **kwargs):
+    super().__init__(is_static)
     self.mass = mass
     self.height = height
     self.radius = radius
-    self.position = position
-    self.orientation = orientation
     self.set_inertia_tensor()
   
   def set_inertia_tensor(self):
@@ -72,55 +70,22 @@ class Cylinder(Element):
       [0, IYY, 0],
       [0, 0, IZZ]
     ], dtype=np.float32)
-  
-  def recalculate_inertia_tensor(self):
-    IXX = IYY = self.mass * self.height ** 2 / 12 + self.mass * self.radius ** 2 / 4
-    IZZ = self.mass * self.radius ** 2 / 2
-    self.I = np.array([
-      [IXX, 0, 0],
-      [0, IYY, 0],
-      [0, 0, IZZ]
-    ], dtype=np.float32)
-  
-  def parallel_axis_shift(self, center_of_mass: NDArray) -> None:
-    """ shift the inertia tensor using the parallel axis theorem
-
-    Args:
-        center_of_mass (NDArray): vector pointing to the center of mass about which this element rotates
-    """
-    self.I += np.array([
-      [self.mass * center_of_mass[0] ** 2, 0, 0],
-      [0, self.mass * center_of_mass[1] ** 2, 0],
-      [0, 0, self.mass * center_of_mass[2] ** 2]
-    ], dtype=np.float32)
-  
-  def translate(self, position: NDArray):
-    """ moves the element into a new position in some world frame, but does not affect inertia tensor components
-
-    Args:
-        position (NDArray): a 3D numpy vector (array)
-    """
-    self.position = position
-  
-  def rotate(self, quaternion: Quaternion):
-    """ rotates the inertia tensor into a new orientation given by the quaternion
-
-    Args:
-        quaternion (Quaternion): the attitude quaternion to base our orientation off of
-    """
-    rotationMatrix = quaternion.get_rotation_matrix()
-    self.I = np.matmul(np.matmul(rotationMatrix, self.I), rotationMatrix.T)
 
 
 class Tube(Element):
-  def __init__(self, inner_radius: float, outer_radius: float, height: float, mass: float, position: NDArray, orientation: Quaternion):
-    super().__init__()
+  def __init__(self, inner_radius: float, outer_radius: float, height: float, mass: float, is_static: bool, **kwargs):
+    super().__init__(is_static)
     self.mass = mass
     self.height = height
-    self.inner_radius = inner_radius
-    self.outer_radius = outer_radius
-    self.position = position
-    self.orientation = orientation
+    if outer_radius > inner_radius:
+      self.inner_radius = inner_radius
+      self.outer_radius = outer_radius
+    elif outer_radius == inner_radius:
+      raise ValueError("Inner radius must be strictly less than the outer radius for `Tube()` element")
+    else:
+      self.inner_radius = outer_radius
+      self.outer_radius = inner_radius
+    
     self.set_inertia_tensor()
   
   def set_inertia_tensor(self):
@@ -133,115 +98,91 @@ class Tube(Element):
       [0, IYY, 0],
       [0, 0, IZZ]
     ], dtype=np.float32)
-  
-  def recalculate_inertia_tensor(self):
-    IXX = IYY = self.mass * self.height ** 2 / 12 + self.mass * self.radius ** 2 / 4
-    IZZ = self.mass * self.radius ** 2 / 2
-    self.I = np.array([
-      [IXX, 0, 0],
-      [0, IYY, 0],
-      [0, 0, IZZ]
-    ], dtype=np.float32)
-    
-  def parallel_axis_shift(self, center_of_mass: NDArray) -> None:
-    """ shift the inertia tensor using the parallel axis theorem
-
-    Args:
-        center_of_mass (NDArray): vector pointing to the center of mass about which this element rotates
-    """
-    self.I += np.array([
-      [self.mass * center_of_mass[0] ** 2, 0, 0],
-      [0, self.mass * center_of_mass[1] ** 2, 0],
-      [0, 0, self.mass * center_of_mass[2] ** 2]
-    ], dtype=np.float32)
-  
-  def translate(self, position: NDArray):
-    """ moves the element into a new position in some world frame, but does not affect inertia tensor components
-
-    Args:
-        position (NDArray): a 3D numpy vector (array)
-    """
-    self.position = position
-  
-  def rotate(self, quaternion: Quaternion):
-    """ rotates the inertia tensor into a new orientation given by the quaternion
-
-    Args:
-        quaternion (Quaternion): the attitude quaternion to base our orientation off of
-    """
-    rotationMatrix = quaternion.get_rotation_matrix()
-    self.I = np.matmul(np.matmul(rotationMatrix, self.I), rotationMatrix.T)
 
 
 class Cone(Element):
-  def __init__(self, radius: float, height: float, mass: float, position: NDArray, orientation: Quaternion):
-    super().__init__()
+  def __init__(self, radius: float, height: float, mass: float, is_static: bool, **kwargs):
+    super().__init__(is_static, kwargs)
     self.mass = mass
     self.height = height
     self.radius = radius
-    self.position = position
-    self.orientation = orientation
     self.set_inertia_tensor()
   
   def set_inertia_tensor(self):
     """ sets the standard inertia tensor elements in the body frame at the center of mass
     """
-    IXX = IYY = self.mass * self.height ** 2 / 10 + self.mass * self.radius ** 2 * 3 / 20
+    IXX = IYY = self.mass * (self.height ** 2 + 4 * self.radius ** 2) * 3 / 80
     IZZ = self.mass * self.radius ** 2 * 3 / 10
     self.I = np.array([
       [IXX, 0, 0],
       [0, IYY, 0],
       [0, 0, IZZ]
     ], dtype=np.float32)
+
+
+class HollowCone(Element):
+  def __init__(self, inner_radius: float, outer_radius: float, inner_height: float, outer_height: float, mass: float, is_static: bool, **kwargs):
+    super().__init__(is_static, kwargs)
+    self.mass = mass
+    
+    if outer_height > inner_height:
+      self.inner_height = inner_height
+      self.outer_height = outer_height
+    elif outer_height == inner_height:
+      raise ValueError("Inner height must strictly be smaller than outer height for `HollowCone()` element")
+    else:
+      self.inner_height = outer_height
+      self.outer_height = inner_height
+    
+    if outer_radius > inner_radius:
+      self.inner_radius = inner_radius
+      self.outer_radius = outer_radius
+    elif inner_radius == outer_radius:
+      raise ValueError("Inner radius must strictly be smaller than outer radius for `HollowCone()` element")
+    else:
+      self.inner_radius = outer_radius
+      self.outer_radius = inner_radius
+    
+    self.set_inertia_tensor()
   
-  def recalculate_inertia_tensor(self):
-    IXX = IYY = self.mass * self.height ** 2 / 12 + self.mass * self.radius ** 2 / 4
-    IZZ = self.mass * self.radius ** 2 / 2
-    self.I = np.array([
+  def set_inertia_tensor(self):
+    """ sets the standard inertia tensor elements in the body frame at the center of mass
+    """
+    IXX = IYY = self.mass * (self.outer_height ** 2 + 4 * self.outer_radius ** 2) * 3 / 80
+    IZZ = self.mass * self.outer_radius ** 2 * 3 / 10
+    outer_I = np.array([
       [IXX, 0, 0],
       [0, IYY, 0],
       [0, 0, IZZ]
     ], dtype=np.float32)
     
-  def parallel_axis_shift(self, center_of_mass: NDArray) -> None:
-    """ shift the inertia tensor using the parallel axis theorem
-
-    Args:
-        center_of_mass (NDArray): vector pointing to the center of mass about which this element rotates
-    """
-    self.I += np.array([
-      [self.mass * center_of_mass[0] ** 2, 0, 0],
-      [0, self.mass * center_of_mass[1] ** 2, 0],
-      [0, 0, self.mass * center_of_mass[2] ** 2]
+    IXX = IYY = self.mass * (self.inner_height ** 2 + 4 * self.inner_radius ** 2) * 3 / 80
+    IZZ = self.mass * self.inner_radius ** 2 * 3 / 10
+    inner_I = np.array([
+      [IXX, 0, 0],
+      [0, IYY, 0],
+      [0, 0, IZZ]
     ], dtype=np.float32)
-  
-  def translate(self, position: NDArray):
-    """ moves the element into a new position in some world frame, but does not affect inertia tensor components
-
-    Args:
-        position (NDArray): a 3D numpy vector (array)
-    """
-    self.position = position
-  
-  def rotate(self, quaternion: Quaternion):
-    """ rotates the inertia tensor into a new orientation given by the quaternion
-
-    Args:
-        quaternion (Quaternion): the attitude quaternion to base our orientation off of
-    """
-    rotationMatrix = quaternion.get_rotation_matrix()
-    self.I = np.matmul(np.matmul(rotationMatrix, self.I), rotationMatrix.T)
+    
+    self.I = np.copy(outer_I - inner_I)
+    
+    np.delete(outer_I)
+    np.delete(inner_I)
 
 
-def reduceMass(element: Element, dm: float):
+def reduceMass(element: Element) -> None:
   """ helper function to instigate a mass element to step down in mass and recompute its inertia tensor in body coordinates
 
   Args:
       element (Element): _description_
       dm (float): _description_
+  
+  Returns:
+      None: does not return anything
   """
-  element.mass -= dm
-  element.recalculate_inertia_tensor()
+  if element.is_dynamic():
+    if element.mass >= element.min_mass:
+      element.mass -= element.m_dot
 
 
 __all__ = [

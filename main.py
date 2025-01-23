@@ -7,7 +7,7 @@ if __name__ == '__main__':
   
   alpha = lambda t: Vector(elements=(0, np.cos(t), np.sin(t)))
   
-  omega = Vector(elements=(0, 0, 0))
+  omega = Vector(elements=(0, 1, 1))
   omega_list = []
   
   q = Quaternion(default=True)

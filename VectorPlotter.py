@@ -18,8 +18,8 @@ def plotVectors(N: int, vectors: list, axes_of_rotation: list):
   ax.set_ylim(-2, 2)
   ax.set_zlim(-2, 2)
   
-  vector = ax.quiver(*getVector(0))
-  axis = ax.quiver(*getAxis(0))
+  vector = ax.quiver(*getVector(0), color='orange')
+  axis = ax.quiver(*getAxis(0), color='green')
 
   def update(index):
     nonlocal vector
@@ -28,12 +28,12 @@ def plotVectors(N: int, vectors: list, axes_of_rotation: list):
     if vector in ax.collections:
       vector.remove()
     
-    vector = ax.quiver(*getVector(index=index))
+    vector = ax.quiver(*getVector(index=index), color='orange')
     
     if axis in ax.collections:
       axis.remove()
     
-    axis = ax.quiver(*getAxis(index=index))
+    axis = ax.quiver(*getAxis(index=index), color='green')
 
   ani = FuncAnimation(fig=fig, func=update, frames=list(range(1000)), interval=50)
   plt.show()
