@@ -1,0 +1,21 @@
+Quaternions
+https://physics.stackexchange.com/questions/790061/calculate-rotation-from-net-torque-and-inertia-matrix
+https://galileoandeinstein.phys.virginia.edu/7010/CM_23_Rigid_Body_Motion.html#:~:text=T%3D∑n12,×→rn)2.&text=where%20M%20is%20the%20total%20mass%20of%20the%20body.
+https://preterhuman.net/docs/John_J._Murphy_-_Technical_Analysis_of_the_Financial_Markets_(1999)
+https://math.stackexchange.com/questions/189185/quaternion-differentiation
+https://www.ii.uib.no/publikasjoner/texrap/pdf/1997-132.pdf
+https://verso.mat.uam.es/web/ezuazua/documentos_public/archivos/personal/comites/Lie_group.pdf
+https://math.stackexchange.com/questions/1030737/exponential-function-of-quaternion-derivation
+https://arc.aiaa.org/doi/epdf/10.2514/1.G004578
+https://math.stackexchange.com/questions/3413817/integration-on-so3 -- This one is used mostly for integration technique in this project
+https://www.mare.ee/indrek/varphi/vardyn.pdf
+https://www.cs.cmu.edu/~spiff/moedit99/expmap.pdf
+https://www.researchgate.net/publication/335422894_Applied_Runge-Kutta-Munthe-Kaas_Integration_for_the_Quaternion_Kinematics
+https://www.researchgate.net/publication/2829702_A_Note_on_the_Construction_of_Crouch-Grossman_Methods
+
+Inertia Tensor
+https://en.wikipedia.org/wiki/Parallel_axis_theorem
+https://en.wikipedia.org/wiki/List_of_moments_of_inertia#List_of_3D_inertia_tensors
+https://amesweb.info/inertia/hollow-cylinder-moment-of-inertia.aspx
+https://scienceworld.wolfram.com/physics/MomentofInertiaCylinder.html
+https://scienceworld.wolfram.com/physics/MomentofInertiaCone.html

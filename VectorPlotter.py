@@ -14,9 +14,10 @@ def plotVectors(N: int, vectors: list, axes_of_rotation: list, dt: float):
     a = axes_of_rotation[index]
     return 0, 0, 0, a[0], a[1], a[2]
 
-  ax.set_xlim(-2, 2)
-  ax.set_ylim(-2, 2)
-  ax.set_zlim(-2, 2)
+  LIM = 5
+  ax.set_xlim(-LIM, LIM)
+  ax.set_ylim(-LIM, LIM)
+  ax.set_zlim(-LIM, LIM)
   
   vector = ax.quiver(*getVector(0), color='orange')
   axis = ax.quiver(*getAxis(0), color='green')

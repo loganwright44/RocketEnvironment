@@ -4,6 +4,8 @@ from numpy.typing import NDArray
 from Element import *
 from Quaternion import *
 
+X, Y, Z = 0, 1, 2
+
 class BodyDict(TypedDict):
   Static: List[Element]
   Dynamic: List[Element]
@@ -29,6 +31,17 @@ class Design:
     del relative_positions
   
   def manipulate_element(self, id: int, displacement: NDArray = None, rotation: Quaternion = None):
+    """ a function to settle positions and orientations of elements before starting a simulation
+
+    Args:
+        id (int): id of element to adjust
+        displacement (NDArray, optional): where to move the element in 3d space. 3D vector with numpy array. Defaults to None.
+        rotation (Quaternion, optional): how to orient the element in 3d space. Quaternion to describe attitude. Defaults to None.
+
+    Raises:
+        KeyError: id not found for element
+        AssertionError: once simulation begins, design is locked and static elements cannot be modified
+    """
     if self.reduced:
       if id in self.static_elements.keys():
         pass
@@ -44,10 +57,10 @@ class Design:
   
   def simplify_static_elements(self) -> None:
     self.reduced = True
-    X, Y, Z = 0, 1, 2
     mass = 0.0
     center_of_mass = np.array([0, 0, 0], dtype=np.float32)
     inertia_tensor = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=np.float32)
+    ΔI: NDArray
     for static_element in self.static_elements.values:
       static_element: Tuple[Element, Quaternion, NDArray]
       element, attitude, position = static_element
@@ -55,20 +68,10 @@ class Design:
       mass += element.mass
       
       R = attitude.get_rotation_matrix()
+      # rotate I
       ΔI = np.matmul(np.matmul(R, element.I), R.T)
-      
-      IXX = element.mass * (position[Y] ** 2 + position[Z] ** 2)
-      IYY = element.mass * (position[X] ** 2 + position[Z] ** 2)
-      IZZ = element.mass * (position[X] ** 2 + position[Y] ** 2)
-      IXY = IYX = element.mass * (-position[X] * position[Y])
-      IXZ = IZX = element.mass * (-position[Z] * position[X])
-      IYZ = IZY = element.mass * (-position[Y] * position[Z])
-      
-      ΔI += np.array([
-        [IXX, IXY, IXZ],
-        [IYX, IYY, IYZ],
-        [IZX, IZY, IZZ]
-      ], dtype=np.float32)
+      # then translate I
+      ΔI += self.shift_inertia_tensor(position=position, element=element)
       
       inertia_tensor += ΔI
       
@@ -82,8 +85,58 @@ class Design:
     
     del self.static_elements
   
-  def get_parallel_axis_translation(self, id: int) -> None:
-    pass
+  def simplify_dynamic_elements(self) -> Tuple[float, NDArray, NDArray]:
+    """ sums temporary physical quantities from the dynamic elements at a current time step t
+
+    Returns:
+        Tuple[float, NDArray, NDArray]: mass, center_of_gravity vector, and inertia tensor contributions
+    """
+    mass = 0.0
+    center_of_mass = np.array([0, 0, 0], dtype=np.float32)
+    inertia_tensor = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=np.float32)
+    ΔI: NDArray
+    for dynamic_element in self.dynamic_elements.values:
+      dynamic_element: Tuple[Element, Quaternion, NDArray]
+      element, attitude, position = dynamic_element
+      
+      mass += element.mass
+      
+      R = attitude.get_rotation_matrix()
+      # rotate I
+      ΔI = np.matmul(np.matmul(R, element.I), R.T)
+      # then translate I
+      ΔI += self.shift_inertia_tensor(position=position, element=element)
+      
+      inertia_tensor += ΔI
+      
+      center_of_mass += element.mass * position
+    
+    center_of_mass /= mass
+    
+    return (mass, center_of_mass, inertia_tensor)
+  
+  def shift_inertia_tensor(self, position: NDArray, element: Element) -> NDArray:
+    """ parallel axis theorem - translate all inertia tensor elements to new position
+
+    Args:
+        position (NDArray): a 3D vector pointing to the new location of the element
+        element (Element): the rigid body element to be translated
+
+    Returns:
+        NDArray: a ΔI inertia tensor to be accumulated to the inertia tensor of the element at hand
+    """
+    IXX = element.mass * (position[Y] ** 2 + position[Z] ** 2)
+    IYY = element.mass * (position[X] ** 2 + position[Z] ** 2)
+    IZZ = element.mass * (position[X] ** 2 + position[Y] ** 2)
+    IXY = IYX = element.mass * (-position[X] * position[Y])
+    IXZ = IZX = element.mass * (-position[Z] * position[X])
+    IYZ = IZY = element.mass * (-position[Y] * position[Z])
+    
+    return np.array([
+      [IXX, IXY, IXZ],
+      [IYX, IYY, IYZ],
+      [IZX, IZY, IZZ]
+    ], dtype=np.float32)
         
   
 
