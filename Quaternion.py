@@ -224,6 +224,15 @@ class Vector:
         raise KeyError("Index out of bounds on `Vector()` object")
     else:
       raise KeyError("Key must be an int for accessing items in `Vector()` class")
+  
+  def __truediv__(self, other) -> Vector:
+    if isinstance(other, (int, float)):
+      if other == 0 or other == 0.0:
+        raise ZeroDivisionError()
+      else:
+        return Vector(elements=(self.v[0] / other, self.v[1] / other, self.v[2] / other))
+    else:
+      raise TypeError("Unsupported type for `division`")
 
 
 # This function will stay in this file locally and is not shared with external imports

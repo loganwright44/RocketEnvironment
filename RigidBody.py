@@ -19,12 +19,14 @@ class Design:
     static_elements = elements["Static"]
     relative_attitudes: List[Quaternion] = [Quaternion(default=True) for _ in range(len(static_elements))]
     relative_positions: List[NDArray] = [np.array([0, 0, 0], dtype=np.float32) for _ in range(len(static_elements))]
-    self.static_elements: Dict[int, Tuple[Element, Quaternion, NDArray]] = {_element.id: (_element, _relative_attitude, _relative_position) for (_element, _relative_attitude, _relative_position) in zip(static_elements, relative_attitudes, relative_positions)}
+    self.static_elements: Dict[int, List[Element, Quaternion, NDArray]] = {_element.id: [_element, _relative_attitude, _relative_position] for (_element, _relative_attitude, _relative_position) in zip(static_elements, relative_attitudes, relative_positions)}
     
     dynamic_elements = elements["Dynamic"]
     relative_attitudes: List[Quaternion] = [Quaternion(default=True) for _ in range(len(dynamic_elements))]
     relative_positions: List[NDArray] = [np.array([0, 0, 0], dtype=np.float32) for _ in range(len(dynamic_elements))]
-    self.dynamic_elements: Dict[int, Tuple[Element, Quaternion, NDArray]] = {_element.id: (_element, _relative_attitude, _relative_position) for (_element, _relative_attitude, _relative_position) in zip(dynamic_elements, relative_attitudes, relative_positions)}
+    self.dynamic_elements: Dict[int, List[Element, Quaternion, NDArray]] = {_element.id: [_element, _relative_attitude, _relative_position] for (_element, _relative_attitude, _relative_position) in zip(dynamic_elements, relative_attitudes, relative_positions)}
+    
+    self.parts = [*elements["Static"], *elements["Dynamic"]]
     
     del static_elements
     del dynamic_elements
@@ -45,7 +47,7 @@ class Design:
     """
     if displacement is None and attitude is None:
       return None
-    elif self.reduced:
+    elif not self.reduced:
       if id in self.static_elements.keys():
         if attitude is not None:
           self.static_elements[id][QUATERNION] = hamiltonProduct(q1=attitude, q2=self.static_elements[id][QUATERNION])
@@ -70,7 +72,7 @@ class Design:
     center_of_mass = np.array([0, 0, 0], dtype=np.float32)
     inertia_tensor = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=np.float32)
     ΔI: NDArray
-    for static_element in self.static_elements.values:
+    for static_element in self.static_elements.values():
       static_element: Tuple[Element, Quaternion, NDArray]
       element, attitude, position = static_element
       
@@ -104,7 +106,7 @@ class Design:
     center_of_mass = np.array([0, 0, 0], dtype=np.float32)
     inertia_tensor = np.array([[0, 0, 0], [0, 0, 0], [0, 0, 0]], dtype=np.float32)
     ΔI: NDArray
-    for dynamic_element in self.dynamic_elements.values:
+    for dynamic_element in self.dynamic_elements.values():
       dynamic_element: Tuple[Element, Quaternion, NDArray]
       element, attitude, position = dynamic_element
       
@@ -186,6 +188,13 @@ class Design:
           self.static_elements[key] = (value, Quaternion(default=True), np.array([0, 0, 0], dtype=np.float32))
       else:
         raise Exception("Tried to setitem for `Design()` object, but not supported")
+  
+  def __str__(self):
+    _str = f""
+    for part in self.parts:
+      _str += part.__str__()
+      _str += f"\n"
+    return _str
   
 
 __all__ = [

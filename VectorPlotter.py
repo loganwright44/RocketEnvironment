@@ -1,8 +1,10 @@
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-import numpy as np
 
-def plotVectors(N: int, vectors: list, axes_of_rotation: list, dt: float):
+from Quaternion import *
+from Integrator import *
+
+def plotVectors(N: int, vectors: list, axes_of_rotation: list, dt: float, save: bool = False):
   fig = plt.figure()
   ax = fig.add_subplot(projection="3d")
 
@@ -37,11 +39,49 @@ def plotVectors(N: int, vectors: list, axes_of_rotation: list, dt: float):
     axis = ax.quiver(*getAxis(index=index), color='green')
 
   ani = FuncAnimation(fig=fig, func=update, frames=list(range(1000)), interval=dt * 1e3, repeat=False)
-  ani.save("rigid_body_motion.mp4", writer="ffmpeg", fps=int(1 / dt))
+  
+  if save:
+    ani.save("rigid_body_motion.mp4", writer="ffmpeg", fps=int(1 / dt))
   
   plt.show()
 
 
+def plotterDemo(save: bool = False):
+  N = 10000
+  
+  alpha = lambda t: Vector(elements=(0, np.cos(t), np.sin(t)))
+  
+  omega = Vector(elements=(0, 1, 1))
+  omega_list = []
+  
+  q = Quaternion(default=True)
+  q_list = []
+  
+  v = Vector(elements=(1, 1, 0))
+  v_list = []
+  
+  t = 0.0
+  t_list = []
+  
+  dt = 1e-2
+  counter = 1
+  while t <= dt * N:
+    omega_list.append(omega.v)
+    
+    q, omega = solver(omega=omega, alpha=alpha(t), q=q, dt=dt, index=counter)
+    q_list.append(q)
+    
+    v_list.append(rotateVector(q=q, v=v).v)
+    
+    t += dt
+    t_list.append(t)
+    
+    counter += 1
+  
+  plotVectors(N=N, vectors=v_list, axes_of_rotation=omega_list, dt=dt, save=save)
+
+
 __all__ = [
-  "plotVectors"
+  "plotVectors",
+  "plotterDemo"
 ]

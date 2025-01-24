@@ -1,6 +1,5 @@
 from __future__ import annotations
 from typing import Tuple
-import numpy as np
 from numpy.typing import NDArray
 from abc import ABC, abstractmethod
 
@@ -28,7 +27,7 @@ class Element(ABC):
     self.I: NDArray
     self.m_dot: float = None
     
-    if is_static:
+    if not is_static:
       if not "min_mass" in kwargs or not "duration" in kwargs:
         raise SyntaxError("If a mass element is dynamic (not static), `min_mass: float` and `duration: float` must be passed as arguments to the constructor of the Element subclass")
       self.min_mass = kwargs["min_mass"]
@@ -60,12 +59,16 @@ class Element(ABC):
   def is_dynamic(self) -> bool:
     return not self.is_static
   
+  def __str__(self) -> str:
+    class_name = type(self).__name__
+    return f"----- Class: {class_name} ----- \n{'STATIC' if self.is_static else 'DYNAMIC'} \nid_number = {self.id} \nM = {self.mass:.3f} kg \n{'-' * (len(class_name) + 19)}"
+
 
 
 class Cylinder(Element):
   def __init__(self, radius: float, height: float, mass: float, is_static: bool, **kwargs):
-    super().__init__(is_static)
     self.mass = mass
+    super().__init__(is_static, **kwargs)
     self.height = height
     self.radius = radius
     self.set_inertia_tensor()
@@ -84,8 +87,8 @@ class Cylinder(Element):
 
 class Tube(Element):
   def __init__(self, inner_radius: float, outer_radius: float, height: float, mass: float, is_static: bool, **kwargs):
-    super().__init__(is_static)
     self.mass = mass
+    super().__init__(is_static, **kwargs)
     self.height = height
     if outer_radius > inner_radius:
       self.inner_radius = inner_radius
@@ -112,8 +115,8 @@ class Tube(Element):
 
 class Cone(Element):
   def __init__(self, radius: float, height: float, mass: float, is_static: bool, **kwargs):
-    super().__init__(is_static, kwargs)
     self.mass = mass
+    super().__init__(is_static, **kwargs)
     self.height = height
     self.radius = radius
     self.set_inertia_tensor()
@@ -132,9 +135,8 @@ class Cone(Element):
 # this is not quite right... will fix the element type below later on but this comment will serve as the reminder
 class HollowCone(Element):
   def __init__(self, inner_radius: float, outer_radius: float, inner_height: float, outer_height: float, mass: float, is_static: bool, **kwargs):
-    super().__init__(is_static, kwargs)
     self.mass = mass
-    
+    super().__init__(is_static, **kwargs)
     if outer_height > inner_height:
       self.inner_height = inner_height
       self.outer_height = outer_height
