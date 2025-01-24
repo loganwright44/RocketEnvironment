@@ -48,7 +48,8 @@ def main():
   torque = Vector(elements=(1, 0, 0))
   force = Vector(elements=(0, 0, 3))
   
-  alpha = np.matmul(inertia_tensor_inv, torque.v.T - np.cross(omega, np.matmul(inertia_tensor, omega.v.T)))
+  angular_effects = torque.v - np.cross(omega, np.matmul(inertia_tensor, omega.v.T))
+  alpha = np.matmul(inertia_tensor_inv, angular_effects)
   a = force / mass
   
   q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=True)
