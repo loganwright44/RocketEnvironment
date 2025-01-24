@@ -56,6 +56,7 @@ class Design:
       
       R = attitude.get_rotation_matrix()
       ΔI = np.matmul(np.matmul(R, element.I), R.T)
+      
       IXX = element.mass * (position[Y] ** 2 + position[Z] ** 2)
       IYY = element.mass * (position[X] ** 2 + position[Z] ** 2)
       IZZ = element.mass * (position[X] ** 2 + position[Y] ** 2)

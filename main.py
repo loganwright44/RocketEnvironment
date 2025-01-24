@@ -34,6 +34,6 @@ if __name__ == '__main__':
     
     counter += 1
   
-  plotVectors(N=N, vectors=v_list, axes_of_rotation=omega_list)
+  plotVectors(N=N, vectors=v_list, axes_of_rotation=omega_list, dt=dt)
   
   

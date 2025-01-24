@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
 
-def plotVectors(N: int, vectors: list, axes_of_rotation: list):
+def plotVectors(N: int, vectors: list, axes_of_rotation: list, dt: float):
   fig = plt.figure()
   ax = fig.add_subplot(projection="3d")
 
@@ -35,7 +35,9 @@ def plotVectors(N: int, vectors: list, axes_of_rotation: list):
     
     axis = ax.quiver(*getAxis(index=index), color='green')
 
-  ani = FuncAnimation(fig=fig, func=update, frames=list(range(1000)), interval=50)
+  ani = FuncAnimation(fig=fig, func=update, frames=list(range(1000)), interval=dt * 1e3, repeat=False)
+  ani.save("rigid_body_motion.mp4", writer="ffmpeg", fps=int(1 / dt))
+  
   plt.show()
 
 
