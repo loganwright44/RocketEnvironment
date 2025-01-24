@@ -144,6 +144,24 @@ class Quaternion:
     
     _rotationMatrix = _identity + 2 * self.q[w] * _skewSymmetric + 2 * np.matmul(_skewSymmetric, _skewSymmetric)
     return _rotationMatrix
+  
+  def __getitem__(self, key: int):
+    if isinstance(key, int):
+      if key == 0:
+        return self.q[w]
+      elif key == 1:
+        return self.q[i][i - 1]
+      elif key == 2:
+        return self.q[j][j - 1]
+      elif key == 3:
+        return self.q[k][k - 1]
+      else:
+        raise KeyError("Index out of bounds on `Quaternion()` object")
+    else:
+      raise KeyError("Key must be an int for accessing items in `Quaternion()` class")
+  
+  def __len__(self):
+    return 4
 
 
 class Vector:
@@ -190,6 +208,22 @@ class Vector:
       return Vector(elements=(self.v[0] + other.v[0], self.v[1] + other.v[1], self.v[2] + other.v[2]))
     else:
       raise AssertionError(f"Vector cannot be added to another variable of type {type(other)}")
+
+  def __len__(self):
+    return 3
+  
+  def __getitem__(self, key: int):
+    if isinstance(key, int):
+      if key == 0:
+        return self.v[0]
+      elif key == 1:
+        return self.v[1]
+      elif key == 2:
+        return self.v[2]
+      else:
+        raise KeyError("Index out of bounds on `Vector()` object")
+    else:
+      raise KeyError("Key must be an int for accessing items in `Vector()` class")
 
 
 # This function will stay in this file locally and is not shared with external imports

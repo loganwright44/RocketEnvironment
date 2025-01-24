@@ -5,6 +5,7 @@ from Element import *
 from Quaternion import *
 
 X, Y, Z = 0, 1, 2
+ELEMENT, QUATERNION, VECTOR = 0, 1, 2
 
 class BodyDict(TypedDict):
   Static: List[Element]
@@ -30,23 +31,31 @@ class Design:
     del relative_attitudes
     del relative_positions
   
-  def manipulate_element(self, id: int, displacement: NDArray = None, rotation: Quaternion = None):
+  def manipulate_element(self, id: int, displacement: NDArray = None, attitude: Quaternion = None):
     """ a function to settle positions and orientations of elements before starting a simulation
 
     Args:
         id (int): id of element to adjust
         displacement (NDArray, optional): where to move the element in 3d space. 3D vector with numpy array. Defaults to None.
-        rotation (Quaternion, optional): how to orient the element in 3d space. Quaternion to describe attitude. Defaults to None.
+        attitude (Quaternion, optional): how to change the current attitude quaternion in 3d space. Quaternion to describe change in attitude. Defaults to None.
 
     Raises:
         KeyError: id not found for element
         AssertionError: once simulation begins, design is locked and static elements cannot be modified
     """
-    if self.reduced:
+    if displacement is None and attitude is None:
+      return None
+    elif self.reduced:
       if id in self.static_elements.keys():
-        pass
+        if attitude is not None:
+          self.static_elements[id][QUATERNION] = hamiltonProduct(q1=attitude, q2=self.static_elements[id][QUATERNION])
+        if displacement is not None:
+          self.static_elements[id][VECTOR] += displacement
       elif id in self.dynamic_elements.keys():
-        pass
+        if attitude is not None:
+          self.dynamic_elements[id][QUATERNION] = hamiltonProduct(q1=attitude, q2=self.dynamic_elements[id][QUATERNION])
+        if displacement is not None:
+          self.dynamic_elements[id][VECTOR] += displacement
       else:
         raise KeyError("Id not found for `Element()`")
     else:
@@ -71,7 +80,7 @@ class Design:
       # rotate I
       ΔI = np.matmul(np.matmul(R, element.I), R.T)
       # then translate I
-      ΔI += self.shift_inertia_tensor(position=position, element=element)
+      ΔI += self.shift_inertia_tensor(position=position, mass=element.mass)
       
       inertia_tensor += ΔI
       
@@ -105,7 +114,7 @@ class Design:
       # rotate I
       ΔI = np.matmul(np.matmul(R, element.I), R.T)
       # then translate I
-      ΔI += self.shift_inertia_tensor(position=position, element=element)
+      ΔI += self.shift_inertia_tensor(position=position, mass=element.mass)
       
       inertia_tensor += ΔI
       
@@ -115,7 +124,26 @@ class Design:
     
     return (mass, center_of_mass, inertia_tensor)
   
-  def shift_inertia_tensor(self, position: NDArray, element: Element) -> NDArray:
+  def get_temporary_properties(self) -> Tuple[float, NDArray, NDArray]:
+    """ gets current properties of the design including all transformations necessary to represent the current state
+
+    Returns:
+        Tuple[float, NDArray, NDArray]: total mass, total cg coordinate in design coordinate frame, and total inertia tensor about the cg given prior
+    """
+    if not self.reduced:
+      self.simplify_static_elements()
+    
+    dynamic_mass, dynamic_CG, dynamic_inertia_tensor = self.simplify_dynamic_elements()
+    
+    true_cg = (dynamic_mass * dynamic_CG + self.static_mass * self.static_CG) / (dynamic_mass + self.static_mass)
+    
+    true_inertia_tensor = dynamic_inertia_tensor + self.static_inertia_tensor
+    
+    true_inertia_tensor += self.shift_inertia_tensor(position=true_cg, mass=dynamic_mass + self.static_mass)
+    
+    return (dynamic_mass + self.static_mass, true_cg, true_inertia_tensor)
+  
+  def shift_inertia_tensor(self, position: NDArray, mass: float) -> NDArray:
     """ parallel axis theorem - translate all inertia tensor elements to new position
 
     Args:
@@ -125,19 +153,42 @@ class Design:
     Returns:
         NDArray: a ΔI inertia tensor to be accumulated to the inertia tensor of the element at hand
     """
-    IXX = element.mass * (position[Y] ** 2 + position[Z] ** 2)
-    IYY = element.mass * (position[X] ** 2 + position[Z] ** 2)
-    IZZ = element.mass * (position[X] ** 2 + position[Y] ** 2)
-    IXY = IYX = element.mass * (-position[X] * position[Y])
-    IXZ = IZX = element.mass * (-position[Z] * position[X])
-    IYZ = IZY = element.mass * (-position[Y] * position[Z])
+    IXX = mass * (position[Y] ** 2 + position[Z] ** 2)
+    IYY = mass * (position[X] ** 2 + position[Z] ** 2)
+    IZZ = mass * (position[X] ** 2 + position[Y] ** 2)
+    IXY = IYX = mass * (-position[X] * position[Y])
+    IXZ = IZX = mass * (-position[Z] * position[X])
+    IYZ = IZY = mass * (-position[Y] * position[Z])
     
     return np.array([
       [IXX, IXY, IXZ],
       [IYX, IYY, IYZ],
       [IZX, IZY, IZZ]
     ], dtype=np.float32)
-        
+  
+  def __getitem__(self, key: int):
+    if key in self.dynamic_elements.keys():
+      return self.dynamic_elements[key]
+    elif not self.reduced:
+      if key in self.static_elements.keys():
+        return self.static_elements[key]
+      else:
+        raise KeyError("Key not found for `Design()` object")
+    else:
+      raise KeyError("Key not found for `Design()` object because `Design()` was contracted on the static elements")
+  
+  def __setitem__(self, key: int, value: Element):
+    if not self.reduced:
+      if isinstance(key, int) and isinstance(value, Element) and key not in self.dynamic_elements.keys() and key not in self.static_elements.keys():
+        if value.is_dynamic():
+          self.dynamic_elements[key] = (value, Quaternion(default=True), np.array([0, 0, 0], dtype=np.float32))
+        else:
+          self.static_elements[key] = (value, Quaternion(default=True), np.array([0, 0, 0], dtype=np.float32))
+      else:
+        raise Exception("Tried to setitem for `Design()` object, but not supported")
   
 
-
+__all__ = [
+  "Design",
+  "BodyDict"
+]

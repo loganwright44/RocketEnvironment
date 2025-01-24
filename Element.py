@@ -6,6 +6,16 @@ from abc import ABC, abstractmethod
 
 from Quaternion import *
 
+"""
+Author: Logan Wright
+
+Description: Element.py is another helper module for generating rigid body components. They can be combined and modified through time
+to simulate the dynamic and static properties of true rigid body systems. RigidBody.py will make use of Elements to construct designs
+and create entire modular rigid bodies and can perform moment and force summations across the body. These are then used to compute the
+solutions of the equations of motion. Different shapes are available from the selection below to construct a design. Will be adding more
+geometries as time goes on and the need arises.
+"""
+
 class Element(ABC):
   _id_counter: int = 0
   def __init__(self, is_static: bool, **kwargs):
@@ -119,7 +129,7 @@ class Cone(Element):
       [0, 0, IZZ]
     ], dtype=np.float32)
 
-
+# this is not quite right... will fix the element type below later on but this comment will serve as the reminder
 class HollowCone(Element):
   def __init__(self, inner_radius: float, outer_radius: float, inner_height: float, outer_height: float, mass: float, is_static: bool, **kwargs):
     super().__init__(is_static, kwargs)
