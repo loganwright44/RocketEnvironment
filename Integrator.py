@@ -19,6 +19,7 @@ def solver(omega: Vector, alpha: Vector, q: Quaternion, dt: float, display: bool
   omega += alpha * dt
   
   qFinal = hamiltonProduct(q1=exponentiateQuaternion(q=omega.extend_to_quaternion() * dt, ε=dt * 1e-3), q2=q)
+  qFinal.normalize()
   
   if display:
     if index is not None:
