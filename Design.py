@@ -7,26 +7,38 @@ from Quaternion import *
 X, Y, Z = 0, 1, 2
 ELEMENT, QUATERNION, VECTOR = 0, 1, 2
 
-class BodyDict(TypedDict):
+class PartsList(TypedDict):
   Static: List[Element]
   Dynamic: List[Element]
 
 
+class KinematicData(TypedDict):
+  R: Vector
+  V: Vector
+  Q: Quaternion
+  OMEGA: Vector
+
+
 class Design:
-  def __init__(self, elements: BodyDict):
+  def __init__(self, parts_list: PartsList):
     self.reduced = False
     
-    static_elements = elements["Static"]
+    self.r: Vector = Vector(elements=(0, 0, 0))
+    self.v: Vector = Vector(elements=(0, 0, 0))
+    self.q: Quaternion = Quaternion(default=True)
+    self.omega: Vector = Vector(elements=(0, 0, 0))
+    
+    static_elements = parts_list["Static"]
     relative_attitudes: List[Quaternion] = [Quaternion(default=True) for _ in range(len(static_elements))]
     relative_positions: List[NDArray] = [np.array([0, 0, 0], dtype=np.float32) for _ in range(len(static_elements))]
     self.static_elements: Dict[int, List[Element, Quaternion, NDArray]] = {_element.id: [_element, _relative_attitude, _relative_position] for (_element, _relative_attitude, _relative_position) in zip(static_elements, relative_attitudes, relative_positions)}
     
-    dynamic_elements = elements["Dynamic"]
+    dynamic_elements = parts_list["Dynamic"]
     relative_attitudes: List[Quaternion] = [Quaternion(default=True) for _ in range(len(dynamic_elements))]
     relative_positions: List[NDArray] = [np.array([0, 0, 0], dtype=np.float32) for _ in range(len(dynamic_elements))]
     self.dynamic_elements: Dict[int, List[Element, Quaternion, NDArray]] = {_element.id: [_element, _relative_attitude, _relative_position] for (_element, _relative_attitude, _relative_position) in zip(dynamic_elements, relative_attitudes, relative_positions)}
     
-    self.parts = [*elements["Static"], *elements["Dynamic"]]
+    self.parts = [*parts_list["Static"], *parts_list["Dynamic"]]
     
     del static_elements
     del dynamic_elements
@@ -65,6 +77,11 @@ class Design:
         pass
       else:
         raise AssertionError("Cannot manually control static element placement after simplifying the state")
+    
+  def step(self, dt: float):
+    for dynamic_element in self.dynamic_elements.values():
+      element, _, _ = dynamic_element
+      reduceMass(element=element, dt=dt)
   
   def simplify_static_elements(self) -> None:
     self.reduced = True
@@ -196,8 +213,20 @@ class Design:
       _str += f"\n"
     return _str
   
+  def __iadd__(self, other):
+    if isinstance(other, dict):
+      r, v, q, omega = other.values()
+      self.r += r
+      self.v += v
+      self.q = q
+      self.omega = omega
+      return self
+    else:
+      raise ValueError("Addition on `Design()` object only defined on `KinematicData` types")
+  
 
 __all__ = [
   "Design",
-  "BodyDict"
+  "PartsList",
+  "KinematicData"
 ]

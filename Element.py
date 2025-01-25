@@ -17,12 +17,14 @@ geometries as time goes on and the need arises.
 
 class Element(ABC):
   _id_counter: int = 0
-  def __init__(self, is_static: bool, **kwargs):
+  def __init__(self, is_static: bool, name: str, **kwargs):
     # assign a unique id to each instance of this class
     self.id = Element._id_counter
     Element._id_counter += 1
     
     self.is_static = is_static
+    self.name = name
+    
     self.mass: float
     self.I: NDArray
     self.m_dot: float = None
@@ -66,9 +68,9 @@ class Element(ABC):
 
 
 class Cylinder(Element):
-  def __init__(self, radius: float, height: float, mass: float, is_static: bool, **kwargs):
+  def __init__(self, radius: float, height: float, mass: float, is_static: bool, name: str, **kwargs):
     self.mass = mass
-    super().__init__(is_static, **kwargs)
+    super().__init__(is_static, name, **kwargs)
     self.height = height
     self.radius = radius
     self.set_inertia_tensor()
@@ -86,9 +88,9 @@ class Cylinder(Element):
 
 
 class Tube(Element):
-  def __init__(self, inner_radius: float, outer_radius: float, height: float, mass: float, is_static: bool, **kwargs):
+  def __init__(self, inner_radius: float, outer_radius: float, height: float, mass: float, is_static: bool, name: str, **kwargs):
     self.mass = mass
-    super().__init__(is_static, **kwargs)
+    super().__init__(is_static, name, **kwargs)
     self.height = height
     if outer_radius > inner_radius:
       self.inner_radius = inner_radius
@@ -114,9 +116,9 @@ class Tube(Element):
 
 
 class Cone(Element):
-  def __init__(self, radius: float, height: float, mass: float, is_static: bool, **kwargs):
+  def __init__(self, radius: float, height: float, mass: float, is_static: bool, name: str, **kwargs):
     self.mass = mass
-    super().__init__(is_static, **kwargs)
+    super().__init__(is_static, name, **kwargs)
     self.height = height
     self.radius = radius
     self.set_inertia_tensor()
@@ -134,9 +136,9 @@ class Cone(Element):
 
 # this is not quite right... will fix the element type below later on but this comment will serve as the reminder
 class HollowCone(Element):
-  def __init__(self, inner_radius: float, outer_radius: float, inner_height: float, outer_height: float, mass: float, is_static: bool, **kwargs):
+  def __init__(self, inner_radius: float, outer_radius: float, inner_height: float, outer_height: float, mass: float, is_static: bool, name: str, **kwargs):
     self.mass = mass
-    super().__init__(is_static, **kwargs)
+    super().__init__(is_static, name, **kwargs)
     if outer_height > inner_height:
       self.inner_height = inner_height
       self.outer_height = outer_height
@@ -182,19 +184,24 @@ class HollowCone(Element):
     np.delete(inner_I)
 
 
-def reduceMass(element: Element) -> None:
+def reduceMass(element: Element, dt: float) -> bool:
   """ helper function to instigate a mass element to step down in mass and recompute its inertia tensor in body coordinates
 
   Args:
-      element (Element): _description_
-      dm (float): _description_
+      element (Element): an Element subclass object to update
+      dt (float): small time step
   
   Returns:
-      None: does not return anything
+      bool: if successful or not
   """
   if element.is_dynamic():
-    if element.mass >= element.min_mass:
+    if element.mass > element.min_mass:
       element.mass -= element.m_dot
+      return True
+    else:
+      return True
+  else:
+    return False
 
 
 __all__ = [

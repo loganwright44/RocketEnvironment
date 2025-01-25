@@ -189,7 +189,7 @@ class Vector:
     return np.copy(self.v) / self.get_magnitude()
 
   def __str__(self):
-    return f"v = ( {self.v[0]:.4f}, {self.v[1]:.4f}, {self.v[2]:.4f} ) \t|v| = {(np.dot(self.v, self.v) ** 0.5):.4f} \n"
+    return f"v = ( {self.v[0]:.4f}, {self.v[1]:.4f}, {self.v[2]:.4f} ) \t|v| = {(np.dot(self.v, self.v) ** 0.5):.4f}"
   
   def __add__(self, v: Vector) -> Vector:
     return Vector(elements=(self.v[0] + v.v[0], self.v[1] + v.v[1], self.v[2] + v.v[2]))
