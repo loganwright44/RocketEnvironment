@@ -64,9 +64,7 @@ def main():
   torque = Vector(elements=(1, 0, 0))
   force = Vector(elements=(0, 0, 3))
   
-  moments = torque.v - np.cross(a=omega.v, b=np.matmul(inertia_tensor, omega.v))
-  
-  alpha = np.matmul(inertia_tensor_inv, moments)
+  alpha = np.matmul(inertia_tensor_inv, torque.v - np.cross(a=omega.v, b=np.matmul(inertia_tensor, omega.v)))
   alpha = Vector(elements=(alpha[0], alpha[1], alpha[2]))
   
   a = force / mass
