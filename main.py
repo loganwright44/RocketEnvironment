@@ -70,7 +70,7 @@ def main():
   a = force / mass
   a = Vector(elements=(a[0], a[1], a[2]))
   
-  q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=True)
+  q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=False)
   
   r += v * dt
   v += a * dt
