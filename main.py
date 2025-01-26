@@ -55,11 +55,11 @@ def main():
   
   dt = 1e-2
   
-  r = Vector(elements=(0, 0, 0))
-  v = Vector(elements=(0, 0, 0))
+  r = design.r
+  v = design.v
   
-  q = Quaternion(default=True)
-  omega = Vector(elements=(1, 0, 0))
+  q = design.q
+  omega = design.omega
   
   torque = Vector(elements=(1, 0, 0))
   force = Vector(elements=(0, 0, 3))
@@ -68,23 +68,16 @@ def main():
   alpha = Vector(elements=(alpha[0], alpha[1], alpha[2]))
   
   a = force / mass
-  a = Vector(elements=(a[0], a[1], a[2]))
   
   q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=False)
   
   r += v * dt
   v += a * dt
   
-  print(f"\nq_t + 1: ", q)
-  print("omega_t + 1: ", omega)
-  print("r_t + 1: ", r)
-  print("v_t + 1: ", v)
-  
-  """
-  Limit is reached: we need a way to modify the heading of the entire design object once the new attitude is
-  computed. Above, q is our attitude at t + dt, omega updates properly, displacement is accounted for with r,
-  and velocity is accumulated as well.
-  """
+  #print(f"\nq_t + 1: ", q)
+  #print("omega_t + 1: ", omega)
+  #print("r_t + 1: ", r)
+  #print("v_t + 1: ", v)
   
   design += KinematicData(
     R=r,
@@ -94,6 +87,8 @@ def main():
   )
   
   design.step(dt=dt)
+  
+  
 
 if __name__ == '__main__':
   main()

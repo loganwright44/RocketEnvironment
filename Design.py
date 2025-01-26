@@ -23,10 +23,14 @@ class Design:
   def __init__(self, parts_list: PartsList):
     self.reduced = False
     
+    ########################################## NOTE #############################################
+    # these values are strictly measured from the inertial world frame, not from the design frame
+    # i.e. no rotation corrections are needed on each iteration
     self.r: Vector = Vector(elements=(0, 0, 0))
     self.v: Vector = Vector(elements=(0, 0, 0))
     self.q: Quaternion = Quaternion(default=True)
     self.omega: Vector = Vector(elements=(0, 0, 0))
+    #############################################################################################
     
     static_elements = parts_list["Static"]
     relative_attitudes: List[Quaternion] = [Quaternion(default=True) for _ in range(len(static_elements))]
@@ -62,12 +66,12 @@ class Design:
     elif not self.reduced:
       if id in self.static_elements.keys():
         if attitude is not None:
-          self.static_elements[id][QUATERNION] = hamiltonProduct(q1=attitude, q2=self.static_elements[id][QUATERNION])
+          self.static_elements[id][QUATERNION] = attitude #hamiltonProduct(q1=attitude, q2=self.static_elements[id][QUATERNION])
         if displacement is not None:
           self.static_elements[id][VECTOR] += displacement
       elif id in self.dynamic_elements.keys():
         if attitude is not None:
-          self.dynamic_elements[id][QUATERNION] = hamiltonProduct(q1=attitude, q2=self.dynamic_elements[id][QUATERNION])
+          self.dynamic_elements[id][QUATERNION] = attitude #hamiltonProduct(q1=attitude, q2=self.dynamic_elements[id][QUATERNION])
         if displacement is not None:
           self.dynamic_elements[id][VECTOR] += displacement
       else:
@@ -159,6 +163,9 @@ class Design:
     true_inertia_tensor = dynamic_inertia_tensor + self.static_inertia_tensor
     
     true_inertia_tensor += self.shift_inertia_tensor(position=true_cg, mass=dynamic_mass + self.static_mass)
+    
+    rotation_matrix = self.q.get_rotation_matrix()
+    true_inertia_tensor = np.matmul(np.matmul(rotation_matrix, true_inertia_tensor), true_inertia_tensor)
     
     return (dynamic_mass + self.static_mass, true_cg, true_inertia_tensor)
   
