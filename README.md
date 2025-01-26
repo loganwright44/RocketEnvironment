@@ -65,6 +65,9 @@ design += KinematicData(
 design.step(dt=dt)
 ```
 
+## **NOTE**
+Make it clear that when we add this `KinematicData` `TypedDict` to the design, we are adding the physical values in terms of the world reference frame, and **NOT** in the body (or equivalently the `Design`) frame of reference. This is done to reduce matrix multiplications and increase code efficiency.
+
 ## Example Code
 
 Below is a demo of working code for this project to see it in use.
@@ -77,6 +80,13 @@ from Design import *
 from Element import *
 from Builder import *
 from ElementTypes import *
+
+names = [
+  "body_tube",
+  "nose_cone",
+  "flight_computer",
+  "rocket_motor"
+]
 
 data_dict = {
   "body_tube": ConfigDict(
@@ -103,23 +113,27 @@ design, part_numbers = builder.generate_design()
 
 print(design)
 
-design.manipulate_element(part_numbers["rocket_motor"], np.array([0, 0, -0.4]))
+design.manipulate_element(part_numbers["rocket_motor"], np.array([0, 0, -0.4])) #, Quaternion(angle_vector=(np.pi / 2, np.array([0, 1, 0.]))))
 design.manipulate_element(part_numbers["nose_cone"], np.array([0, 0, 0.4]))
 design.manipulate_element(part_numbers["flight_computer"], np.array([0, 0, 0.15]))
 
 design.simplify_static_elements()
 mass, cg, inertia_tensor = design.get_temporary_properties()
 
+print(f"M: {mass:.4f} kg")
+print(f"CG: {cg}")
+print(f"IT: {inertia_tensor}")
+
 inertia_tensor_inv = np.linalg.inv(inertia_tensor)
 print(f"IT_INV: {inertia_tensor_inv}")
 
 dt = 1e-2
 
-r = Vector(elements=(0, 0, 0))
-v = Vector(elements=(0, 0, 0))
+r = design.r
+v = design.v
 
-q = Quaternion(default=True)
-omega = Vector(elements=(1, 0, 0))
+q = design.q
+omega = design.omega
 
 torque = Vector(elements=(1, 0, 0))
 force = Vector(elements=(0, 0, 3))
@@ -128,9 +142,8 @@ alpha = np.matmul(inertia_tensor_inv, torque.v - np.cross(a=omega.v, b=np.matmul
 alpha = Vector(elements=(alpha[0], alpha[1], alpha[2]))
 
 a = force / mass
-a = Vector(elements=(a[0], a[1], a[2]))
 
-q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=True)
+q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=False)
 
 r += v * dt
 v += a * dt
@@ -146,8 +159,9 @@ design += KinematicData(
   Q=q,
   OMEGA=omega
 )
-
+  
 design.step(dt=dt)
+print(design)
 ```
 
 ## Report a Problem
