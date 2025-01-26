@@ -19,3 +19,7 @@ https://en.wikipedia.org/wiki/List_of_moments_of_inertia#List_of_3D_inertia_tens
 https://amesweb.info/inertia/hollow-cylinder-moment-of-inertia.aspx
 https://scienceworld.wolfram.com/physics/MomentofInertiaCylinder.html
 https://scienceworld.wolfram.com/physics/MomentofInertiaCone.html
+
+Motor Information
+https://www.thrustcurve.org/simfiles/5f4294d20002e900000007e5/ - F15
+https://www.thrustcurve.org/simfiles/5f4294d20002e900000007ad/ - E12
