@@ -3,6 +3,7 @@
 2. [Background](#background)
 3. [Usage](#usage)
 4. [Example Code](#example-code)
+5. [Common Problems and Solutions](#common-problems-and-solutions)
 5. [Report a Problem](#report-a-problem)
 
 # Rocket Simulation Environment
@@ -163,6 +164,8 @@ design += KinematicData(
 design.step(dt=dt)
 print(design)
 ```
+
+## Common Problems and Solutions
 
 ## Report a Problem
 
