@@ -196,7 +196,7 @@ def reduceMass(element: Element, dt: float) -> bool:
   """
   if element.is_dynamic():
     if element.mass > element.min_mass:
-      element.mass -= element.m_dot
+      element.mass -= element.m_dot * dt
       return True
     else:
       return True

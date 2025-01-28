@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from typing import List
 
 from Quaternion import *
 from Integrator import *
 
-def plotVectors(N: int, vectors: list, axes_of_rotation: list, dt: float, save: bool = False):
+def plotVectors(N: int, vectors: List[Vector], axes_of_rotation: List[Vector], dt: float, save: bool = False):
   fig = plt.figure()
   ax = fig.add_subplot(projection="3d")
 
@@ -16,7 +17,7 @@ def plotVectors(N: int, vectors: list, axes_of_rotation: list, dt: float, save: 
     a = axes_of_rotation[index]
     return 0, 0, 0, a[0], a[1], a[2]
 
-  LIM = 5
+  LIM = 2
   ax.set_xlim(-LIM, LIM)
   ax.set_ylim(-LIM, LIM)
   ax.set_zlim(-LIM, LIM)

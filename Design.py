@@ -80,14 +80,14 @@ class Design:
       if id in self.dynamic_elements.keys():
         pass
       else:
-        raise AssertionError("Cannot manually control static element placement after simplifying the state")
+        raise AssertionError("Cannot manually control static element placement after consolidating the state")
     
   def step(self, dt: float):
     for dynamic_element in self.dynamic_elements.values():
       element, _, _ = dynamic_element
       reduceMass(element=element, dt=dt)
   
-  def simplify_static_elements(self) -> None:
+  def consolidate_static_elements(self) -> None:
     self.reduced = True
     mass = 0.0
     center_of_mass = np.array([0, 0, 0], dtype=np.float32)
@@ -117,7 +117,7 @@ class Design:
     
     del self.static_elements
   
-  def simplify_dynamic_elements(self) -> Tuple[float, NDArray, NDArray]:
+  def consolidate_dynamic_elements(self) -> Tuple[float, NDArray, NDArray]:
     """ sums temporary physical quantities from the dynamic elements at a current time step t
 
     Returns:
@@ -154,9 +154,9 @@ class Design:
         Tuple[float, NDArray, NDArray]: total mass, total cg coordinate in design coordinate frame, and total inertia tensor about the cg given prior
     """
     if not self.reduced:
-      self.simplify_static_elements()
+      self.consolidate_static_elements()
     
-    dynamic_mass, dynamic_CG, dynamic_inertia_tensor = self.simplify_dynamic_elements()
+    dynamic_mass, dynamic_CG, dynamic_inertia_tensor = self.consolidate_dynamic_elements()
     
     true_cg = (dynamic_mass * dynamic_CG + self.static_mass * self.static_CG) / (dynamic_mass + self.static_mass)
     
@@ -165,7 +165,7 @@ class Design:
     true_inertia_tensor += self.shift_inertia_tensor(position=true_cg, mass=dynamic_mass + self.static_mass)
     
     rotation_matrix = self.q.get_rotation_matrix()
-    true_inertia_tensor = np.matmul(np.matmul(rotation_matrix, true_inertia_tensor), true_inertia_tensor)
+    true_inertia_tensor = np.matmul(np.matmul(rotation_matrix.T, true_inertia_tensor), rotation_matrix) # need to rotate from body frame to inertial frame, so R.T@I@R is the correct order of operations
     
     return (dynamic_mass + self.static_mass, true_cg, true_inertia_tensor)
   
