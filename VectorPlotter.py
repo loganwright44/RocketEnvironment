@@ -54,7 +54,7 @@ def plotOrientation(N: int, vectors: List[Vector], axes_of_rotation: List[Vector
   plt.show()
 
 
-def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[Vector], dt: float, save: bool = False):
+def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[Vector], dt: float, burn_time: float, save: bool = False):
   fig = plt.figure()
   ax = fig.add_subplot(projection="3d")
 
@@ -72,11 +72,13 @@ def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[V
   ax.set_zlim(-LIM, LIM)
   
   rocket = ax.quiver(*getVector(0), color='blue')
-  text = ax.text2D(0, 0, s=f"t = 0.00 s", transform=ax.transAxes)
+  time = ax.text2D(0, 0, s=f"t = 0.00 s", transform=ax.transAxes)
+  motor_status = ax.text2D(0, 0.05, s="Motor: OFF", color="red", transform=ax.transAxes)
 
   def update(index):
     nonlocal rocket
-    nonlocal text
+    nonlocal time
+    nonlocal motor_status
     nonlocal ax
     
     if rocket in ax.collections:
@@ -86,7 +88,14 @@ def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[V
     
     rocket = ax.quiver(*(x, y, z, u, v, w), color='blue')
     
-    text.set_text(f"t = {getTime(index):.2f} s")
+    time.set_text(f"t = {getTime(index):.2f} s")
+    
+    if index * dt > burn_time:
+      motor_status.set_text(f"Motor: OFF")
+      motor_status.set_color("red")
+    else:
+      motor_status.set_text(f"Motor: ON")
+      motor_status.set_color("green")
     
     ax.set_xlim(x - LIM, x + LIM)
     ax.set_ylim(y - LIM, y + LIM)

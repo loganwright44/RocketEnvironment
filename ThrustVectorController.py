@@ -29,6 +29,7 @@ class ThrustVectorController:
     if not hasattr(self, "initialized"):
       self.initialized = True
       self.motor_manager = motor_manager
+      self.burn_time = motor_manager.burn_time
       self.thetax, self.thetay = 0.0, 0.0
       self.targetx, self.targety = 0.0, 0.0
       self.max_speed = max_refresh_speed * np.pi / 180.0 # rad/s

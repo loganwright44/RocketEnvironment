@@ -74,6 +74,7 @@ class MotorManager:
   def initialize(self):
     self.data_frame, self.params = getMotorData(motor=self.motor)
     self.slopes, self.time_intercepts, self.thrust_intercepts = getLinearInterpolations(data=self.data_frame)
+    self.burn_time = self.data_frame["Time (s)"][len(self.data_frame["Time (s)"]) - 1]
   
   def getThrust(self, t: float) -> float:
     """ computes the scalar thrust of the motor at time t

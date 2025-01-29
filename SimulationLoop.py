@@ -132,7 +132,7 @@ def demoSim():
       if r.v[2] <= 0.0:
         break
   
-  plotMotion(N=N, translation_vectors=r_list, z_body_vectors=z_body_list, dt=dt, save=True)
+  plotMotion(N=N, translation_vectors=r_list, z_body_vectors=z_body_list, dt=dt, burn_time=tvc.burn_time, save=True)
   
   print("Done")
 
