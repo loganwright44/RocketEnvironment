@@ -33,15 +33,24 @@ class ThrustVectorController:
       pass
   
   def step(self, dt: float) -> None:
-    """ update the servo positions according to their maximum reponse rates for realistic modeling
+    """ update the servo positions according to their maximum response rates for realistic servo modeling
 
     Args:
         dt (float): small time step since last time step
     """
+    epsilon = self.max_speed * dt
     errorx = self.targetx - self.thetax
     errory = self.targety - self.thetay
-    self.thetax += np.sign(errorx) * self.max_speed * dt
-    self.thetay += np.sign(errory) * self.max_speed * dt
+    # the problem without these if statements is that oscillations occur when perfect accuracy is unattainable - which is always the case
+    if abs(errorx) > epsilon:
+      self.thetax += np.sign(errorx) * epsilon
+    else:
+      self.thetax = self.targetx
+    
+    if abs(errory) > epsilon:
+      self.thetay += np.sign(errory) * epsilon
+    else:
+      self.thetay = self.targety
     
   def moveToMotor(self, offset: NDArray) -> None:
     """ sets the offset parameter to correctly compute the cross product between thrust vector and center of mass position vector
@@ -81,6 +90,12 @@ class ThrustVectorController:
     angle = np.acos(np.dot(target, z))
     cross = np.cross(z, target)
     return Quaternion(angle_vector=(angle, cross), is_vector=False)
+
+  def forceToTarget(self) -> None:
+    """ a helper function for initialization to force the tvc to initial target state
+    """
+    self.thetax = self.targetx
+    self.thetay = self.targety
   
   
 __all__ = [

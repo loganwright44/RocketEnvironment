@@ -85,8 +85,7 @@ class MotorManager:
         float: thrust in Newtons
     """
     for index, _t in enumerate(self.time_intercepts):
-      if t <= _t:
-        index -= 1
+      if t <= _t and t >= 0.0:
         T = self.thrust_intercepts[index] + self.slopes[index] * (t - self.time_intercepts[index])
         return T if T >= 0 else 0.0
       else:

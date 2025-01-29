@@ -63,7 +63,7 @@ class Element(ABC):
   
   def __str__(self) -> str:
     class_name = type(self).__name__
-    return f"----- Class: {class_name} ----- \n{'STATIC' if self.is_static else 'DYNAMIC'} \nid_number = {self.id} \nM = {self.mass:.3f} kg \n{'-' * (len(class_name) + 19)}"
+    return f"----- Class: {class_name} ----- \n{'STATIC' if self.is_static else 'DYNAMIC'} \nid_number = {self.id} \nM = {self.mass:.3f} kg \nI = \n{self.I} \n{'-' * (len(class_name) + 19)}"
 
 
 

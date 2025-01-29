@@ -39,7 +39,7 @@ def plotVectors(N: int, vectors: List[Vector], axes_of_rotation: List[Vector], d
     
     axis = ax.quiver(*getAxis(index=index), color='green')
 
-  ani = FuncAnimation(fig=fig, func=update, frames=list(range(1000)), interval=dt * 1e3, repeat=False)
+  ani = FuncAnimation(fig=fig, func=update, frames=list(range(N)), interval=dt * 1e3, repeat=True)
   
   if save:
     ani.save("rigid_body_motion.mp4", writer="ffmpeg", fps=int(1 / dt))

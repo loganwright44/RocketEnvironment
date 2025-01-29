@@ -16,15 +16,15 @@ def demoSim():
   data_dict = {
     "body_tube": ConfigDict(
       Type=Tube,
-      Args=TubeDictS(inner_radius=0.072, outer_radius=0.074, height=0.8, mass=0.42, is_static=True)
+      Args=TubeDictS(inner_radius=0.072 / 2, outer_radius=0.074 / 2, height=0.8, mass=0.3, is_static=True)
     ),
     "nose_cone": ConfigDict(
       Type=Cone,
-      Args=ConeDictS(radius=0.074, height=0.2, mass=0.08, is_static=True)
+      Args=ConeDictS(radius=0.074 / 2, height=0.2, mass=0.12, is_static=True)
     ),
     "flight_computer": ConfigDict(
       Type=Cylinder,
-      Args=CylinderDictS(radius=0.072, height=0.12, mass=0.18, is_static=True)
+      Args=CylinderDictS(radius=0.072 / 2, height=0.12, mass=0.18, is_static=True)
     )
   }
   
@@ -40,10 +40,13 @@ def demoSim():
   tvc.moveToMotor(offset=np.array([0, 0, -0.4]))
   
   design.manipulate_element(part_numbers["nose_cone"], np.array([0, 0, 0.4]))
-  design.manipulate_element(part_numbers["flight_computer"], np.array([0, 0, 0.15]))
+  design.manipulate_element(part_numbers["flight_computer"], np.array([0, 0, 0.15]), attitude=Quaternion(angle_vector=(0.12, np.array([0, 1, 1], dtype=np.float32)), is_vector=False))
+  
+  #print(design)
+  #exit(0)
   
   t = 0.0
-  tFinal = 4.0
+  tFinal = 20.0
   dt = 1e-2
   
   N = 0
@@ -56,12 +59,16 @@ def demoSim():
   # consolidate the static elements to prepare for simulation loop
   design.consolidate_static_elements()
   
+  tvc.updateSetpoint(targetx=1e-3, targety=1e-3)
+  tvc.forceToTarget()
+  
+  r = design.r
+  v = design.v
+  q = design.q
+  omega = design.omega
+  
   while t < tFinal:
     N += 1
-    r = design.r
-    v = design.v
-    q = design.q
-    omega = design.omega
     
     r_list.append(rotateVector(q=q, v=u))
     omega_list.append(omega)
@@ -107,11 +114,15 @@ def demoSim():
     design.dynamic_elements[motor_idx][1] = tvc.getAttitude() # rotate the motor mass to the attitude determined by the servo outputs
 
     # compute error in orientation - ideally non-zero in a real situation, but the error is computed with yaw-pitch-roll angle differences
-    tvc.updateSetpoint(targetx=0.0, targety=0.0)
+    if N == 100:
+      tvc.updateSetpoint(targetx=-1e-3, targety=-1e-3)
+    
+    if N == 500:
+      tvc.updateSetpoint(targetx=0.0, targety=0.0)
 
     t += dt
   
-  plotVectors(N=N, vectors=r_list, axes_of_rotation=omega_list, dt=dt)
+  plotVectors(N=N, vectors=r_list, axes_of_rotation=omega_list, dt=dt, save=False)
   
   print("Done")
 
