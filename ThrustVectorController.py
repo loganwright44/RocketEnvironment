@@ -7,6 +7,10 @@ from Quaternion import *
 from MotorManager import *
 
 
+DEGREES_TO_RADIANS = np.pi / 180.0
+RADIANS_TO_DEGREES = 180.0 / np.pi
+
+
 class ThrustVectorController:
   _instance = None
   
@@ -99,5 +103,7 @@ class ThrustVectorController:
   
   
 __all__ = [
-  "ThrustVectorController"
+  "ThrustVectorController",
+  "DEGREES_TO_RADIANS",
+  "RADIANS_TO_DEGREES"
 ]

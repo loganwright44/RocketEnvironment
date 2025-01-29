@@ -10,7 +10,7 @@ from ThrustVectorController import *
 
 
 def demoSim():
-  motor = MotorManager(motor="F15")
+  motor = MotorManager(motor="E12")
   tvc = ThrustVectorController(motor_manager=motor)
   
   data_dict = {
@@ -42,8 +42,7 @@ def demoSim():
   design.manipulate_element(part_numbers["nose_cone"], np.array([0, 0, 0.4]))
   design.manipulate_element(part_numbers["flight_computer"], np.array([0, 0, 0.15]), attitude=Quaternion(angle_vector=(0.12, np.array([0, 1, 1], dtype=np.float32)), is_vector=False))
   
-  #print(design)
-  #exit(0)
+  print(design)
   
   t = 0.0
   tFinal = 20.0
@@ -54,12 +53,12 @@ def demoSim():
   u = Vector(elements=(0, 0, 1))
   
   r_list = []
-  omega_list = []
+  z_body_list = []
   
   # consolidate the static elements to prepare for simulation loop
   design.consolidate_static_elements()
   
-  tvc.updateSetpoint(targetx=1e-3, targety=1e-3)
+  tvc.updateSetpoint(targetx=0.0 * DEGREES_TO_RADIANS, targety=0.0 * DEGREES_TO_RADIANS)
   tvc.forceToTarget()
   
   r = design.r
@@ -70,9 +69,6 @@ def demoSim():
   while t < tFinal:
     N += 1
     
-    r_list.append(rotateVector(q=q, v=u))
-    omega_list.append(omega)
-    
     mass, cg, inertia_tensor = design.get_temporary_properties()
 
     inertia_tensor_inv = np.linalg.inv(inertia_tensor)
@@ -80,8 +76,8 @@ def demoSim():
     F, M = tvc.getThrustVector(t=t, cg=cg)
 
     # use the conjugate quaternion to rotate from body frame to world frame - both vectors are computed in body centered frame initially
-    F = rotateVector(q=design.q.get_conjugate(), v=Vector(elements=(F[0], F[1], F[2])))
-    M = rotateVector(q=design.q.get_conjugate(), v=Vector(elements=(M[0], M[1], M[2])))
+    F = rotateVector(q=design.q, v=Vector(elements=(F[0], F[1], F[2])))
+    M = rotateVector(q=design.q, v=Vector(elements=(M[0], M[1], M[2])))
 
     F = np.array([F[0], F[1], F[2]])
     M = np.array([M[0], M[1], M[2]])
@@ -107,22 +103,32 @@ def demoSim():
       Q=q,
       OMEGA=omega
     )
+    
+    z_body_list.append(rotateVector(q=q, v=u))
+    r_list.append(r)
 
     design.step(dt=dt) # reduce the mass of the dynamic elements according to their specs
     tvc.step(dt=dt)
-    
-    design.dynamic_elements[motor_idx][1] = tvc.getAttitude() # rotate the motor mass to the attitude determined by the servo outputs
 
     # compute error in orientation - ideally non-zero in a real situation, but the error is computed with yaw-pitch-roll angle differences
     if N == 100:
-      tvc.updateSetpoint(targetx=-1e-3, targety=-1e-3)
+      tvc.updateSetpoint(targetx=-2.0 * DEGREES_TO_RADIANS, targety=-1.0 * DEGREES_TO_RADIANS)
     
-    if N == 500:
-      tvc.updateSetpoint(targetx=0.0, targety=0.0)
+    if N == 125:
+      tvc.updateSetpoint(targetx=1.0 * DEGREES_TO_RADIANS, targety=2.0 * DEGREES_TO_RADIANS)
+    
+    if N == 150:
+      tvc.updateSetpoint(targetx=0.0 * DEGREES_TO_RADIANS, targety=0.0 * DEGREES_TO_RADIANS)
+
+    design.dynamic_elements[motor_idx][1] = tvc.getAttitude() # rotate the motor mass to the attitude determined by the servo outputs
 
     t += dt
+    
+    if N > 100:
+      if r.v[2] <= 0.0:
+        break
   
-  plotVectors(N=N, vectors=r_list, axes_of_rotation=omega_list, dt=dt, save=False)
+  plotMotion(N=N, translation_vectors=r_list, z_body_vectors=z_body_list, dt=dt, save=True)
   
   print("Done")
 

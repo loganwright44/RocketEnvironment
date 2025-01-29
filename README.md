@@ -42,9 +42,9 @@ The structure of this tool are based on several key ideas, so first, familiarize
 
 Here, I'll keep a list of all of the main `class` elements which are most commonly accessed, their uses, and how to prepare data for each instantiation process. Many of the objects used for this project are singleton instances to minimize memory consumption and to avoid redundant object creation. These will also be specified when listed. As promised:
 
-- `Element` (and its many subclasses)
+- `Element` (and its many subclasses) - Represents a massive part of the rocket or general aerospace rigid body. It is an _element_ of a `Design` block
 
-- `Design`
+- `Design` - Represents a cluster of `Element`'s and is used to manage the rotations and translations of conslidated reprentations of the inertia tensor and keep track of changing mass for each `DYNAMIC` element. It can be produced automatically by using a `Builder` object
 
 - `Builder`
 
@@ -62,13 +62,15 @@ After getting familiar with the ideas above, we can start learning several of th
 
 - Before loops begin, call `.simplify_static_elements()` on the `Design`
 
-- Loop begins and we set/call `mass, cg, inertia_tensor = design.get_temporary_properties()` to collect information about the current physical state of the vehicle
+- Loop begins and we set/call `mass, cg, inertia_tensor = design.get_temporary_properties()` to collect information about the current physical state of the vehicle. These are gathered automatically in the inertial world frame, not the body frame so no rotations are required
 
 - Compute the inverse of the inertia tensor with `inertia_tensor_inv = np.linalg.inv(inertia_tensor)`
 
-- Calculate the forces and moments on the body in the world (inertial) frame - convert to linear and angular accelerations with the following repective formulae: `a = force / mass`, `alpha = np.matmul(inertia_tensor_inv, torque.v - np.cross(a=omega.v, b=np.matmul(inertia_tensor, omega.v)))`
+- Get the contributed force and torque from the rocket motor using the `ThrustVectorController` object by calling `.getThrustVector()`. These vectors are in the **BODY FRAME** and must be manually transformed to the world frame using the process shown in the demonstration below
 
-- Convert `alpha` and `a` to `Vector` objects with `alpha = Vector(elements=(alpha[0], alpha[1], alpha[2]))` and `a = Vector(elements=(a[0], a[1], a[2]))`, respectively
+- Use the sum of the forces and moments acting on the body in the world (inertial) frame to approximate the next state - convert to linear and angular accelerations with the following repective formulae: `a = force / mass`, `alpha = np.matmul(inertia_tensor_inv, torque.v - np.cross(a=omega.v, b=np.matmul(inertia_tensor, omega.v)))`
+
+- Convert `angular_acceleration (alpha)` and `linear_acceleration (a)` to `Vector` objects with `alpha = Vector(elements=(alpha[0], alpha[1], alpha[2]))` and `a = Vector(elements=(a[0], a[1], a[2]))`, respectively for proper typing in the `KinematicData` named dictionary
 
 - Use `q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=True)` to get the new quaternion representing attitude and omega representing the angular velocity vector
 
@@ -100,9 +102,12 @@ from Design import *
 from Element import *
 from Builder import *
 from ElementTypes import *
+from MotorManager import *
+from ThrustVectorController import *
+
 
 def demoSim():
-  motor = MotorManager(motor="F15")
+  motor = MotorManager(motor="E12")
   tvc = ThrustVectorController(motor_manager=motor)
   
   data_dict = {
@@ -124,10 +129,6 @@ def demoSim():
   
   # let the motor manager produce the data for us and add it to the constraints dictionary
   data_dict.update(motor.getElementData())
-
-```
-
-```python
   builder = Builder(data_dict=data_dict)
   design, part_numbers = builder.generate_design()
   
@@ -138,6 +139,8 @@ def demoSim():
   design.manipulate_element(part_numbers["nose_cone"], np.array([0, 0, 0.4]))
   design.manipulate_element(part_numbers["flight_computer"], np.array([0, 0, 0.15]), attitude=Quaternion(angle_vector=(0.12, np.array([0, 1, 1], dtype=np.float32)), is_vector=False))
   
+  print(design) # see the cool looking output of the constituent parts of the design
+  
   t = 0.0
   tFinal = 20.0
   dt = 1e-2
@@ -147,26 +150,21 @@ def demoSim():
   u = Vector(elements=(0, 0, 1))
   
   r_list = []
-  omega_list = []
+  z_body_list = []
   
   # consolidate the static elements to prepare for simulation loop
   design.consolidate_static_elements()
   
-  tvc.updateSetpoint(targetx=1e-3, targety=1e-3)
+  tvc.updateSetpoint(targetx=0.0 * DEGREES_TO_RADIANS, targety=0.0 * DEGREES_TO_RADIANS)
   tvc.forceToTarget()
   
   r = design.r
   v = design.v
   q = design.q
   omega = design.omega
-```
-
-```python
+  
   while t < tFinal:
     N += 1
-    
-    r_list.append(rotateVector(q=q, v=u))
-    omega_list.append(omega)
     
     mass, cg, inertia_tensor = design.get_temporary_properties()
 
@@ -175,8 +173,8 @@ def demoSim():
     F, M = tvc.getThrustVector(t=t, cg=cg)
 
     # use the conjugate quaternion to rotate from body frame to world frame - both vectors are computed in body centered frame initially
-    F = rotateVector(q=design.q.get_conjugate(), v=Vector(elements=(F[0], F[1], F[2])))
-    M = rotateVector(q=design.q.get_conjugate(), v=Vector(elements=(M[0], M[1], M[2])))
+    F = rotateVector(q=design.q, v=Vector(elements=(F[0], F[1], F[2])))
+    M = rotateVector(q=design.q, v=Vector(elements=(M[0], M[1], M[2])))
 
     F = np.array([F[0], F[1], F[2]])
     M = np.array([M[0], M[1], M[2]])
@@ -196,36 +194,40 @@ def demoSim():
     r += v * dt
     v += a * dt
 
-    # this step will probably be deprecated, the design does not actually care about its velocity, position, orientation, etc. and all of those parameters are locally available in the loop
     design += KinematicData(
       R=r,
       V=v,
       Q=q,
       OMEGA=omega
     )
+    
+    z_body_list.append(rotateVector(q=q, v=u))
+    r_list.append(r)
 
     design.step(dt=dt) # reduce the mass of the dynamic elements according to their specs
-    tvc.step(dt=dt) # adjusts the servo angles if the true servo angle does not equal the target angle (hints at the lagged reaction of real systems to their control inputs)
-    
-    design.dynamic_elements[motor_idx][1] = tvc.getAttitude() # rotate the motor mass to the attitude determined by the servo outputs
+    tvc.step(dt=dt)
 
     # compute error in orientation - ideally non-zero in a real situation, but the error is computed with yaw-pitch-roll angle differences
-    """
-    the step shown above does not actually happen in this demo, but would be computed directly using whatever error calculation method you're using
-    for your project - i.e. the differences between yaw, pitch, and roll and their targets to produce some control output
-    """
-
-    # randomly adjust the setpoint for the 2 servos to some response values
-    if N == 100:
-      tvc.updateSetpoint(targetx=-1e-3, targety=-1e-3)
+    if N == 100: # randomly choose some noise
+      tvc.updateSetpoint(targetx=-2.0 * DEGREES_TO_RADIANS, targety=-1.0 * DEGREES_TO_RADIANS)
     
-    # and just to prove the randomness, adjust the targets for servo x and servo y arbitrarily and watch the motion change
-    if N == 500:
-      tvc.updateSetpoint(targetx=1e-3, targety=1e-3)
+    if N == 125: # raandomly pick some response
+      tvc.updateSetpoint(targetx=1.0 * DEGREES_TO_RADIANS, targety=2.0 * DEGREES_TO_RADIANS)
+    
+    if N == 150: # and randomly choose another reponse at another time
+      tvc.updateSetpoint(targetx=0.0 * DEGREES_TO_RADIANS, targety=0.0 * DEGREES_TO_RADIANS)
+
+
+    design.dynamic_elements[motor_idx][1] = tvc.getAttitude() # rotate the motor mass to the attitude determined by the servo outputs
 
     t += dt
+    
+    if N > 100:
+      if r.v[2] <= 0.0: # optional simple check for if the rocket has fallen back down to earth; stop if so
+        break
   
-  plotVectors(N=N, vectors=r_list, axes_of_rotation=omega_list, dt=dt, save=False) # set `save` to True to save an mp4 file to your directory which is the vector plot animation
+  # I made a new function to plot the z axis orientation and translate it through space for realistic perspective
+  plotMotion(N=N, translation_vectors=r_list, z_body_vectors=z_body_list, dt=dt, save=True)
   
   print("Done")
 ```

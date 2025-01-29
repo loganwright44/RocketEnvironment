@@ -165,7 +165,7 @@ class Design:
     true_inertia_tensor += self.shift_inertia_tensor(position=true_cg, mass=dynamic_mass + self.static_mass)
     
     rotation_matrix = self.q.get_rotation_matrix()
-    true_inertia_tensor = np.matmul(np.matmul(rotation_matrix.T, true_inertia_tensor), rotation_matrix) # need to rotate from body frame to inertial frame, so R.T@I@R is the correct order of operations
+    true_inertia_tensor = np.matmul(np.matmul(rotation_matrix, true_inertia_tensor), rotation_matrix.T) # need to rotate from body frame to inertial frame, so R.T@I@R is the correct order of operations
     
     return (dynamic_mass + self.static_mass, true_cg, true_inertia_tensor)
   
