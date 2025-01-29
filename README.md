@@ -1,10 +1,11 @@
 # Table of Contents
 1. [Rocket Simulation Environment](#rocket-simulation-environment)
 2. [Background](#background)
-3. [Usage](#usage)
-4. [Example Code](#example-code)
-5. [Common Problems and Solutions](#common-problems-and-solutions)
-5. [Report a Problem](#report-a-problem)
+3. [Assets of the API](#assets-of-the-api)
+4. [Usage](#usage)
+5. [Example Code](#example-code)
+6. [Common Problems and Solutions](#common-problems-and-solutions)
+7. [Report a Problem](#report-a-problem)
 
 # Rocket Simulation Environment
 
@@ -36,6 +37,24 @@ The structure of this tool are based on several key ideas, so first, familiarize
 
 
 **NOTE**: Calling the `.simplify_static_elements()` method on a `Design` will restrict the user from modifying any parameters about all static `Element`'s, so wait to call this before you want to begin the simulation phase
+
+## Assets of the API
+
+Here, I'll keep a list of all of the main `class` elements which are most commonly accessed, their uses, and how to prepare data for each instantiation process. Many of the objects used for this project are singleton instances to minimize memory consumption and to avoid redundant object creation. These will also be specified when listed. As promised:
+
+- `Element` (and its many subclasses)
+
+- `Design`
+
+- `Builder`
+
+- `MotorManager`
+
+- `ThrustVectorController`
+
+- `Quaternion`
+
+- `Vector`
 
 ## Usage
 
@@ -82,87 +101,133 @@ from Element import *
 from Builder import *
 from ElementTypes import *
 
-names = [
-  "body_tube",
-  "nose_cone",
-  "flight_computer",
-  "rocket_motor"
-]
-
-data_dict = {
-  "body_tube": ConfigDict(
-    Type=Tube,
-    Args=TubeDictS(inner_radius=0.072, outer_radius=0.074, height=0.8, mass=0.42, is_static=True)
-  ),
-  "nose_cone": ConfigDict(
-    Type=Cone,
-    Args=ConeDictS(radius=0.074, height=0.2, mass=0.08, is_static=True)
-  ),
-  "flight_computer": ConfigDict(
-    Type=Cylinder,
-    Args=CylinderDictS(radius=0.072, height=0.12, mass=0.18, is_static=True)
-  ),
-  "rocket_motor": ConfigDict(
-    Type=Cylinder,
-    Args=CylinderDictD(radius=0.029, height=0.129, mass=0.13, is_static=False, min_mass=0.084, duration=3.5)
-  )
-}
-
-builder = Builder(data_dict=data_dict)
-
-design, part_numbers = builder.generate_design()
-
-print(design)
-
-design.manipulate_element(part_numbers["rocket_motor"], np.array([0, 0, -0.4])) #, Quaternion(angle_vector=(np.pi / 2, np.array([0, 1, 0.]))))
-design.manipulate_element(part_numbers["nose_cone"], np.array([0, 0, 0.4]))
-design.manipulate_element(part_numbers["flight_computer"], np.array([0, 0, 0.15]))
-
-design.simplify_static_elements()
-mass, cg, inertia_tensor = design.get_temporary_properties()
-
-print(f"M: {mass:.4f} kg")
-print(f"CG: {cg}")
-print(f"IT: {inertia_tensor}")
-
-inertia_tensor_inv = np.linalg.inv(inertia_tensor)
-print(f"IT_INV: {inertia_tensor_inv}")
-
-dt = 1e-2
-
-r = design.r
-v = design.v
-
-q = design.q
-omega = design.omega
-
-torque = Vector(elements=(1, 0, 0))
-force = Vector(elements=(0, 0, 3))
-
-alpha = np.matmul(inertia_tensor_inv, torque.v - np.cross(a=omega.v, b=np.matmul(inertia_tensor, omega.v)))
-alpha = Vector(elements=(alpha[0], alpha[1], alpha[2]))
-
-a = force / mass
-
-q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=False)
-
-r += v * dt
-v += a * dt
-
-print(f"\nq_t + 1: ", q)
-print("omega_t + 1: ", omega)
-print("r_t + 1: ", r)
-print("v_t + 1: ", v)
-
-design += KinematicData(
-  R=r,
-  V=v,
-  Q=q,
-  OMEGA=omega
-)
+def demoSim():
+  motor = MotorManager(motor="F15")
+  tvc = ThrustVectorController(motor_manager=motor)
   
-design.step(dt=dt)
-print(design)
+  data_dict = {
+    "body_tube": ConfigDict(
+      Type=Tube,
+      Args=TubeDictS(inner_radius=0.072 / 2, outer_radius=0.074 / 2, height=0.8, mass=0.3, is_static=True)
+    ),
+    "nose_cone": ConfigDict(
+      Type=Cone,
+      Args=ConeDictS(radius=0.074 / 2, height=0.2, mass=0.12, is_static=True)
+    ),
+    "flight_computer": ConfigDict(
+      Type=Cylinder,
+      Args=CylinderDictS(radius=0.072 / 2, height=0.12, mass=0.18, is_static=True)
+    )
+  }
+  
+  motor_idx = len(data_dict)
+  
+  # let the motor manager produce the data for us and add it to the constraints dictionary
+  data_dict.update(motor.getElementData())
+
+```
+
+```python
+  builder = Builder(data_dict=data_dict)
+  design, part_numbers = builder.generate_design()
+  
+  # make sure the motor and the tvc are lined up, the tvc has a specific function to do this which must be performed
+  design.manipulate_element(part_numbers["rocket_motor"], np.array([0, 0, -0.4]))
+  tvc.moveToMotor(offset=np.array([0, 0, -0.4]))
+  
+  design.manipulate_element(part_numbers["nose_cone"], np.array([0, 0, 0.4]))
+  design.manipulate_element(part_numbers["flight_computer"], np.array([0, 0, 0.15]), attitude=Quaternion(angle_vector=(0.12, np.array([0, 1, 1], dtype=np.float32)), is_vector=False))
+  
+  t = 0.0
+  tFinal = 20.0
+  dt = 1e-2
+  
+  N = 0
+  
+  u = Vector(elements=(0, 0, 1))
+  
+  r_list = []
+  omega_list = []
+  
+  # consolidate the static elements to prepare for simulation loop
+  design.consolidate_static_elements()
+  
+  tvc.updateSetpoint(targetx=1e-3, targety=1e-3)
+  tvc.forceToTarget()
+  
+  r = design.r
+  v = design.v
+  q = design.q
+  omega = design.omega
+```
+
+```python
+  while t < tFinal:
+    N += 1
+    
+    r_list.append(rotateVector(q=q, v=u))
+    omega_list.append(omega)
+    
+    mass, cg, inertia_tensor = design.get_temporary_properties()
+
+    inertia_tensor_inv = np.linalg.inv(inertia_tensor)
+
+    F, M = tvc.getThrustVector(t=t, cg=cg)
+
+    # use the conjugate quaternion to rotate from body frame to world frame - both vectors are computed in body centered frame initially
+    F = rotateVector(q=design.q.get_conjugate(), v=Vector(elements=(F[0], F[1], F[2])))
+    M = rotateVector(q=design.q.get_conjugate(), v=Vector(elements=(M[0], M[1], M[2])))
+
+    F = np.array([F[0], F[1], F[2]])
+    M = np.array([M[0], M[1], M[2]])
+
+    M = M
+    F = F - mass * np.array([0.0, 0.0, 9.8]) # simple gravity force term pulls down on rocket in inertial-frame z direction
+
+    alpha = np.matmul(inertia_tensor_inv, M - np.cross(a=omega.v, b=np.matmul(inertia_tensor, omega.v)))
+    alpha = Vector(elements=(alpha[0], alpha[1], alpha[2]))
+
+    a = F / mass
+    a = Vector(elements=(a[0], a[1], a[2]))
+
+    q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=False)
+
+    # add position increment first, then velocity increment next
+    r += v * dt
+    v += a * dt
+
+    # this step will probably be deprecated, the design does not actually care about its velocity, position, orientation, etc. and all of those parameters are locally available in the loop
+    design += KinematicData(
+      R=r,
+      V=v,
+      Q=q,
+      OMEGA=omega
+    )
+
+    design.step(dt=dt) # reduce the mass of the dynamic elements according to their specs
+    tvc.step(dt=dt) # adjusts the servo angles if the true servo angle does not equal the target angle (hints at the lagged reaction of real systems to their control inputs)
+    
+    design.dynamic_elements[motor_idx][1] = tvc.getAttitude() # rotate the motor mass to the attitude determined by the servo outputs
+
+    # compute error in orientation - ideally non-zero in a real situation, but the error is computed with yaw-pitch-roll angle differences
+    """
+    the step shown above does not actually happen in this demo, but would be computed directly using whatever error calculation method you're using
+    for your project - i.e. the differences between yaw, pitch, and roll and their targets to produce some control output
+    """
+
+    # randomly adjust the setpoint for the 2 servos to some response values
+    if N == 100:
+      tvc.updateSetpoint(targetx=-1e-3, targety=-1e-3)
+    
+    # and just to prove the randomness, adjust the targets for servo x and servo y arbitrarily and watch the motion change
+    if N == 500:
+      tvc.updateSetpoint(targetx=1e-3, targety=1e-3)
+
+    t += dt
+  
+  plotVectors(N=N, vectors=r_list, axes_of_rotation=omega_list, dt=dt, save=False) # set `save` to True to save an mp4 file to your directory which is the vector plot animation
+  
+  print("Done")
 ```
 
 ## Common Problems and Solutions
