@@ -10,7 +10,7 @@ from ThrustVectorController import *
 
 
 def demoSim():
-  motor = MotorManager(motor="E12")
+  motor = MotorManager(motor="F15")
   tvc = ThrustVectorController(motor_manager=motor)
   
   data_dict = {
@@ -90,6 +90,10 @@ def demoSim():
 
     a = F / mass
     a = Vector(elements=(a[0], a[1], a[2]))
+    
+    if N < 10 and a.v[2] < 0.0:
+      # if the motor is starting, do not start falling because of gravity - the earth provides a normal force equal to gravity
+      a.v[2] = 0.0
 
     q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=False)
 
