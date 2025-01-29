@@ -232,6 +232,8 @@ def demoSim():
 
 ## Common Problems and Solutions
 
+Nothing reported yet, without a bug-fix released.
+
 ## Report a Problem
 
 To report a problem, simply start an issue on this repository and be specific. If you have the skillset to make fixes, fork the repository to your local editor, commit changes, and submit a pull request for us to review. If there are concerns about copyright issues or if you'd like to use this project for entrprising uses, contact me directly through GitHub messaging.
