@@ -92,7 +92,7 @@ def demoSim():
     a = Vector(elements=(a[0], a[1], a[2]))
     
     if N < 10 and a.v[2] < 0.0:
-      # if the motor is starting, do not start falling because of gravity - the earth provides a normal force equal to gravity
+      # if the motor is starting, do not acclerate down because of gravity - the earth provides a normal force equal to gravity
       a.v[2] = 0.0
 
     q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=False)
@@ -132,7 +132,7 @@ def demoSim():
       if r.v[2] <= 0.0:
         break
   
-  plotMotion(N=N, translation_vectors=r_list, z_body_vectors=z_body_list, dt=dt, burn_time=tvc.burn_time, save=True)
+  plotMotion(N=N, translation_vectors=r_list, z_body_vectors=z_body_list, dt=dt, burn_time=tvc.burn_time, save=False)
   
   print("Done")
 
