@@ -184,6 +184,22 @@ class HollowCone(Element):
     np.delete(inner_I)
 
 
+class FuelTank(Element):
+  def __init__(self, is_static, name, **kwargs):
+    super().__init__(is_static, name, **kwargs)
+  
+  def get_inertia_tensor(self) -> NDArray:
+    return super().get_inertia_tensor()
+
+
+class BellNozzle(Element):
+  def __init__(self, is_static, name, **kwargs):
+    super().__init__(is_static, name, **kwargs)
+  
+  def get_inertia_tensor(self):
+    return super().get_inertia_tensor()
+
+
 def reduceMass(element: Element, dt: float) -> bool:
   """ helper function to instigate a mass element to step down in mass and recompute its inertia tensor in body coordinates
 
