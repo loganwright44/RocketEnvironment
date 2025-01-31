@@ -1,4 +1,3 @@
-from Builder import *
 from Design import *
 from Element import *
 from ElementTypes import *
@@ -6,6 +5,7 @@ from Integrator import *
 from MotorManager import *
 from Quaternion import *
 from SerialManager import *
-from SimulationLoop import *
 from ThrustVectorController import *
 from VectorPlotter import *
+from PhysicsAPI import *
+from Builder import *

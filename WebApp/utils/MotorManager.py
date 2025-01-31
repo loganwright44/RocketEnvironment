@@ -117,5 +117,6 @@ class MotorManager:
   
 
 __all__ = [
-  "MotorManager"
+  "MotorManager",
+  "AVAILABLE"
 ]
