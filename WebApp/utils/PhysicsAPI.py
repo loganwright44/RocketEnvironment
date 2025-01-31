@@ -56,7 +56,12 @@ class PhysicsAPI(object):
       self.motor_manager._instance = None # a simple way to reset the singleton instance
     
     if req["motor"] in AVAILABLE:
+      if "rocket_motor" in self.data_dict.keys():
+        _ = self.data_dict.pop("rocket_motor")
+      
+      self.motor_index = len(self.data_dict)
       self.motor_manager = MotorManager(motor=req["motor"])
+      self.data_dict.update(self.motor_manager.getElementData())
       return {"res": True, "message": None}
     else:
       return {"res": False, "message": None}
