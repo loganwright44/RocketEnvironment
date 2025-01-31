@@ -3,8 +3,11 @@ from typing import Tuple, Dict, TypedDict, List
 import struct
 import serial
 
-QUATERNION_PACKET = "4d"
-SERVO_PACKET = "2d"
+from Quaternion import *
+
+# both use little endian implemented by the `<` symbol
+QUATERNION_PACKET = "<4d"
+SERVO_PACKET = "<2d"
 
 
 class SerialManager:
@@ -25,7 +28,7 @@ class SerialManager:
   def getAvailablePorts(self):
     return [port.device for port in serial.tools.list_ports.comports()]
   
-  def isConnected(self) -> bool:
+  def startConnection(self) -> bool:
     try:
       self.serial = serial.Serial(port=self.port, baudrate=self.baud_rate, timeout=1)
       print(f"Serial connection successful to port `{self.port}`")
@@ -40,9 +43,15 @@ class SerialManager:
       return res
     else:
       return None
-  
-if __name__ == "__main__":
-  se = SerialManager(port="/dev/cu.usbserial-210", baud_rate=115200)
-  if se.isConnected():
-    while True:
-      print(se.readData())
+
+
+def serializeQuaternion(q: Quaternion) -> bytes:
+  """ packs a quaternion data into a 4-double bytes object to be passed over serial to arduino or other serial device
+
+  Args:
+      q (Quaternion): the orientation from simulation for the HIL
+
+  Returns:
+      bytes: the packed data ready for serial transmission
+  """
+  return struct.pack(QUATERNION_PACKET, *(q.q[0], q.q[1][0], q.q[2][1], q.q[3][2]))
