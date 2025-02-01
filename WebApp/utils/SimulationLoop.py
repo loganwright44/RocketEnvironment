@@ -1,3 +1,7 @@
+from __future__ import annotations
+from typing import Any, Dict
+import pandas as pd
+
 from Quaternion import *
 from Integrator import *
 from VectorPlotter import *
@@ -7,6 +11,124 @@ from Builder import *
 from ElementTypes import *
 from MotorManager import *
 from ThrustVectorController import *
+
+
+async def simulationLoop(
+    design: Design,
+    tvc: ThrustVectorController,
+    motor_idx: int,
+    dt: float = 1e-2,
+    save: bool = False,
+    filename: str = None
+  ) -> Dict[str, bool]:
+  """ performs a generic model rocket flight simulation and produces solutions to the equations of motion
+
+  - assumes all presets have been completed prior to call. verify this in the api or webapp side to prevent failures
+  
+  Args:
+      design (Design): a design containing all information about the rocket
+      tvc (ThrustVectorController): the thrust vector controller object
+      motor_idx (int): the index of the motor in the design
+  
+  Returns:
+      Dict[str, bool]: {"res": bool, "data": pd.DataFrame}
+  """
+  t = 0.0
+  dt = dt
+  tFinal = 20.0
+  n = 0
+
+  positions = []
+  headings = []
+  targetx = []
+  targety = []
+  thetax = []
+  thetay = []
+  velocities = []
+  accelerations = []
+  omegas = []
+  
+  z_body_axis = Vector(elements=(0, 0, 1))
+  r = design.r
+  v = design.v
+  q = design.q
+  omega = design.omega
+  
+  while t < tFinal:
+    n += 1
+    mass, cg, inertia_tensor = design.get_temporary_properties()
+    inertia_tensor_inv = np.linalg.inv(inertia_tensor)
+    F, M = tvc.getThrustVector(t=t, cg=cg)
+    F = rotateVector(q=q, v=Vector(elements=(F[0], F[1], F[2])))
+    M = rotateVector(q=q, v=Vector(elements=(M[0],M[1], M[2])))
+    
+    F = np.array([F[0], F[1], F[2]])
+    M = np.array([M[0], M[1], M[2]])
+    
+    F -= mass * np.array([0.0, 0.0, 9.8])
+    
+    alpha = np.matmul(inertia_tensor_inv, M - np.cross(a=omega.v, b=np.matmul(inertia_tensor, omega.v)))
+    alpha = Vector(elements=(alpha[0], alpha[1], alpha[2]))
+    
+    a = F / mass
+    a = Vector(elements=(a[0], a[1], a[2]))
+    
+    if n < 10 and a.v[2] < 0.0:
+      # if the motor is starting, do not acclerate down because of gravity - the earth provides a normal force equal to gravity
+      a.v[2] = 0.0
+    
+    q, omega = solver(omega=omega, alpha=alpha, q=q, dt=dt, display=False)
+    r += v * dt
+    v += a * dt
+    design += KinematicData(
+      R=r,
+      V=v,
+      Q=q,
+      OMEGA=omega
+    )
+    
+    headings.append(rotateVector(q=q, v=z_body_axis))
+    positions.append(r)
+    targetx.append(tvc.targetx)
+    targety.append(tvc.targety)
+    thetax.append(tvc.thetax)
+    thetay.append(tvc.thetay)
+    velocities.append(v)
+    accelerations.append(Vector(elements=(a[0], a[1], a[2])))
+    omegas.append(omega)
+    
+    design.step(dt=dt)
+    tvc.step(dt=dt)
+    
+    design.dynamic_elements[motor_idx][1] = tvc.getAttitude()
+
+    t += dt
+    
+    if n > 100:
+      if r.v[2] <= 0.0:
+        break
+  
+  await plotMotion(N=n, translation_vectors=positions, z_body_vectors=headings, dt=dt, burn_time=tvc.burn_time, save=save, filename=filename)
+  
+  data = pd.DataFrame({
+    "position": positions,
+    "heading": headings,
+    "targetx": targetx,
+    "targety": targety,
+    "thetax": thetax,
+    "thetay": thetay,
+    "velocity": velocities,
+    "acceleration": accelerations,
+    "omega": omegas
+  })
+  
+  data.to_csv("temp.csv", sep=",")
+
+  return {"res": True}
+
+
+
+
 
 
 def demoSim():
@@ -74,8 +196,6 @@ def demoSim():
     inertia_tensor_inv = np.linalg.inv(inertia_tensor)
 
     F, M = tvc.getThrustVector(t=t, cg=cg)
-
-    # use the conjugate quaternion to rotate from body frame to world frame - both vectors are computed in body centered frame initially
     F = rotateVector(q=design.q, v=Vector(elements=(F[0], F[1], F[2])))
     M = rotateVector(q=design.q, v=Vector(elements=(M[0], M[1], M[2])))
 
@@ -138,5 +258,6 @@ def demoSim():
 
 
 __all__ = [
-  "demoSim"
+  "demoSim",
+  "simulationLoop"
 ]

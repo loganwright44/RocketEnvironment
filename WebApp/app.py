@@ -1,8 +1,8 @@
 import dash
 from dash import Dash, html, dcc, Input, Output, callback
 import plotly.express as px
-import os
-import sys
+
+from utils import PhysicsAPI
 
 app = Dash(__name__, use_pages=True, assets_folder="./assets")
 

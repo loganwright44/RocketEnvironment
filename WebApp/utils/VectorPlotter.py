@@ -54,7 +54,7 @@ def plotOrientation(N: int, vectors: List[Vector], axes_of_rotation: List[Vector
   plt.show()
 
 
-def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[Vector], dt: float, burn_time: float, save: bool = False):
+def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[Vector], dt: float, burn_time: float, save: bool = False, filename: str = None) -> None:
   fig = plt.figure()
   ax = fig.add_subplot(projection="3d")
 
@@ -104,9 +104,15 @@ def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[V
   ani = FuncAnimation(fig=fig, func=update, frames=list(range(N)), interval=dt * 1e3, repeat=True)
   
   if save:
-    ani.save("rocket_motion.mp4", writer="ffmpeg", fps=int(1 / dt))
+    if filename is None:
+      ani.save("rocket_motion.mp4", writer="ffmpeg", fps=int(1 / dt))
+    else:
+      if filename.endswith(".mp4"):
+        ani.save(filename, writer="ffmpeg", fps=int(1 / dt))
+      else:
+        ani.save(filename + ".mp4", writer="ffmpeg", fps=int(1 / dt))
   
-  plt.show()
+  #plt.show()
 
 
 def plotterDemo(save: bool = False):
@@ -145,7 +151,7 @@ def plotterDemo(save: bool = False):
 
 
 __all__ = [
-  "plotOrientation",
+  #"plotOrientation",
   "plotMotion",
-  "plotterDemo"
+  #"plotterDemo"
 ]

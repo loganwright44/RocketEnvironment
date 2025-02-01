@@ -5,6 +5,7 @@ All rights reserved.
 """
 
 from typing import Any
+import asyncio
 
 from Design import *
 from Builder import *
@@ -16,6 +17,7 @@ from SerialManager import *
 from ThrustVectorController import *
 from VectorPlotter import *
 from Integrator import *
+from SimulationLoop import simulationLoop
 
 
 Request = Dict[str, Any]
@@ -213,9 +215,59 @@ class PhysicsAPI(object):
       return {"res": True}
     else:
       return {"res": False, "message": "id not found in the elements parts list within this API instance"}
-      
   
+  def postMotorAdjustment(self, req: Request) -> Response:
+    """ translates/rotates the initial motor placement
+
+    Args:
+        req (Request): {key: "id", value: (str) id, key: "translation", value: translation (NDArray | Optional), key: "rotation", value: rotation (Quaternion| Optional)]
+
+    Returns:
+        Response: key: res, value: bool
+    """
+    self.design.manipulate_element(id=self.motor_index, displacement=req["translation"], attitude=req["rotation"])
+    self.tvc.moveToMotor(offset=req["translation"])
+    return {"res": True}
   
+  def postLockStaticElements(self, req: Request = None) -> Response:
+    """ irreversible lock on the design, reset requires complete rebuild
+
+    Args:
+        req (Request, optional): empty, None
+
+    Returns:
+        Response: key: res, value: bool
+    """
+    self.design.consolidate_static_elements()
+  
+  def postSetTVC(self, req: Request) -> Response:
+    """ sets the angle for the TVC at launch and forces setting regardless servo speed
+
+    Args:
+        req (Request): {"x": (float) angle_x, "y": (float) angle_y}
+
+    Returns:
+        Response: key: res, value: bool
+    """
+    self.tvc.updateSetpoint(targetx=req["x"], targety=req["y"])
+    self.tvc.forceToTarget()
+    return {"res": True}
+  
+  def getSimulationResults(self, req: Request = None) -> Response:
+    """ this function calls the simulation method based on the finalized design - all presets should have been performed already
+
+    Args:
+        req (Request, optional): {"save": bool, "filename": str name of file (include .mp4 in the filename)}. Defaults to None.
+
+    Returns:
+        Response: key: res, value: 
+    """
+    if "save" not in req.keys():
+      req["save"] = True
+    if "filename" not in req.keys():
+      req["filename"] = "temp.mp4"
+    
+    return asyncio.run(simulationLoop(design=self.design, tvc=self.tvc, motor_idx=self.motor_index, save=req["save"], filename=req["filename"]))
 
 
 __all__ = [
