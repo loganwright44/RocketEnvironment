@@ -65,7 +65,7 @@ async def simulationLoop(
     F = np.array([F[0], F[1], F[2]])
     M = np.array([M[0], M[1], M[2]])
     
-    F -= mass * np.array([0.0, 0.0, 9.8])
+    F += mass * np.array([0.0, 0.0, -9.8])
     
     alpha = np.matmul(inertia_tensor_inv, M - np.cross(a=omega.v, b=np.matmul(inertia_tensor, omega.v)))
     alpha = Vector(elements=(alpha[0], alpha[1], alpha[2]))
@@ -108,7 +108,7 @@ async def simulationLoop(
       if r.v[2] <= 0.0:
         break
   
-  await plotMotion(N=n, translation_vectors=positions, z_body_vectors=headings, dt=dt, burn_time=tvc.burn_time, save=save, filename=filename)
+  plotMotion(N=n, translation_vectors=positions, z_body_vectors=headings, dt=dt, burn_time=tvc.burn_time, save=save, filename=filename)
   
   data = pd.DataFrame({
     "position": positions,

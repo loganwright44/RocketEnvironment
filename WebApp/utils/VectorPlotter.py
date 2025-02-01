@@ -112,7 +112,7 @@ def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[V
       else:
         ani.save(filename + ".mp4", writer="ffmpeg", fps=int(1 / dt))
   
-  #plt.show()
+  return True
 
 
 def plotterDemo(save: bool = False):

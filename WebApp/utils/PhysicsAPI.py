@@ -6,6 +6,7 @@ All rights reserved.
 
 from typing import Any
 import asyncio
+import numpy as np
 
 from Design import *
 from Builder import *
@@ -25,17 +26,31 @@ Response = Dict[str, Any]
 
 
 class PhysicsAPI(object):
-  is_consolidated: bool = None
+  is_consolidated: bool = False
   motor_manager: MotorManager = None
   tvc: ThrustVectorController = None
-  data_dict: Dict[str, ConfigDict] = None
+  data_dict: Dict[str, ConfigDict] = {}
   motor_index: int = None
   builder: Builder = None
   design: Design = None
   part_numbers: Dict[str, int] = None
+  serial_manager: SerialManager = None
   
   def __init__(self):
     print("Retrieved an instance of the PhysicsAPI objects")
+  
+  def getAvailablePorts(self, req: Request = None) -> Response:
+    """ gets a list of port names available on the device
+
+    Returns:
+        Response: _description_
+    """
+    self.serial_manager = SerialManager(baud_rate=115200)
+    return {"res": self.serial_manager.availablePorts()}
+  
+  def postConnectToPort(self, req: Request) -> Response:
+    self.serial_manager.port = req["port"]
+    self.serial_manager.startConnection()
   
   def getMotorOptions(self, req: Request) -> Response:
     """ gets the list of supported solid motor boosters
@@ -68,8 +83,8 @@ class PhysicsAPI(object):
     else:
       return {"res": False, "message": None}
   
-  def postLockTVC(self, req: Request = None) -> Response:
-    """ locks the thrust vectoring unit if and only if a motor manager has been properly setup
+  def postMakeTVC(self, req: Request = None) -> Response:
+    """ makes the thrust vectoring unit if and only if a motor manager has been properly setup
 
     Args:
         req (Request): a request, ignored
@@ -92,7 +107,7 @@ class PhysicsAPI(object):
     Returns:
         Response: key: res, value: None
     """
-    self.data_dict.update(req["req"])
+    self.data_dict.update(req)
     return {"res": None}
   
   def deleteElement(self, req: Request) -> Response:
@@ -206,6 +221,11 @@ class PhysicsAPI(object):
     Returns:
         Response: key: res, value: bool
     """
+    if "rotation" not in req.keys():
+      req["rotation"] = None
+    if "translation" not in req.keys():
+      req["translation"] = None
+    
     if req["id"] in self.part_numbers.keys():
       if self.design is None:
         return {"res": False, "message": "to adjust an element's position or rotation, you must first generate the design with the `.postBuildDesign() method`"}
@@ -220,11 +240,16 @@ class PhysicsAPI(object):
     """ translates/rotates the initial motor placement
 
     Args:
-        req (Request): {key: "id", value: (str) id, key: "translation", value: translation (NDArray | Optional), key: "rotation", value: rotation (Quaternion| Optional)]
+        req (Request): {key: "translation", value: translation (NDArray | Optional), key: "rotation", value: rotation (Quaternion| Optional)]
 
     Returns:
         Response: key: res, value: bool
     """
+    if "rotation" not in req.keys():
+      req["rotation"] = None
+    if "translation" not in req.keys():
+      req["translation"] = None
+    
     self.design.manipulate_element(id=self.motor_index, displacement=req["translation"], attitude=req["rotation"])
     self.tvc.moveToMotor(offset=req["translation"])
     return {"res": True}
@@ -253,7 +278,7 @@ class PhysicsAPI(object):
     self.tvc.forceToTarget()
     return {"res": True}
   
-  def getSimulationResults(self, req: Request = None) -> Response:
+  def getSimulationResults(self, req: Request = {}) -> Response:
     """ this function calls the simulation method based on the finalized design - all presets should have been performed already
 
     Args:
@@ -273,3 +298,38 @@ class PhysicsAPI(object):
 __all__ = [
   "PhysicsAPI"
 ]
+
+if __name__ == "__main__":
+  api = PhysicsAPI()
+  api.postMotor({"motor": "E12"})
+  api.postMakeTVC()
+  api.postAddElement({
+    "flight_computer": ConfigDict(
+      Type=Cylinder,
+      Args=CylinderDictS(radius=0.072 / 2, height=0.12, mass=0.18, is_static=True)
+    )
+  })
+  api.postAddElement({
+    "nose_cone": ConfigDict(
+      Type=Cone,
+      Args=ConeDictS(radius=0.074 / 2, height=0.2, mass=0.12, is_static=True)
+    )
+  })
+  api.postAddElement({
+    "body_tube": ConfigDict(
+      Type=Tube,
+      Args=TubeDictS(inner_radius=0.072 / 2, outer_radius=0.074 / 2, height=0.8, mass=0.3, is_static=True)
+    )
+  })
+  
+  api.postBuildDesign()
+  
+  api.postMotorAdjustment({"translation": np.array([0, 0, -0.4])})
+  api.postElementAdjustment({"id": "flight_computer", "translation": np.array([0, 0, 0.15])})
+  api.postElementAdjustment({"id": "nose_cone", "translation": np.array([0, 0, 0.4])})
+  api.postElementAdjustment({"id": "body_tube", "translation": np.array([0.0, 0.0, -0.05])})
+  
+  api.postLockStaticElements()
+  api.postSetTVC({"x": 0.0, "y": 0.0})
+  
+  api.getSimulationResults()

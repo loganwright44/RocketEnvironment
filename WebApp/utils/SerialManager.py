@@ -25,7 +25,7 @@ class SerialManager:
     else:
       pass
   
-  def getAvailablePorts(self):
+  def availablePorts(self):
     return [port.device for port in serial.tools.list_ports.comports()]
   
   def startConnection(self) -> bool:
