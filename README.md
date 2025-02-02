@@ -96,7 +96,6 @@ Below is a demo of working code for this project to see it in use.
 
 ```python
 from typing import Any
-import asyncio
 import numpy as np
 
 from Design import *
@@ -104,13 +103,10 @@ from Builder import *
 from MotorManager import *
 from Element import *
 from ElementTypes import *
-from Quaternion import *
 from SerialManager import *
 from ThrustVectorController import *
-from VectorPlotter import *
-from Integrator import *
 from SimulationLoop import simulationLoop
-
+from PhysicsAPI import *
 
 if __name__ == "__main__":
   api = PhysicsAPI()
@@ -145,12 +141,18 @@ if __name__ == "__main__":
   api.postLockStaticElements()
   api.postSetTVC({"x": 0.0, "y": 0.0})
   
+  res = api.postConnectSerial({"port": None, "baud_rate": 115200})
+  if res["res"]:
+    api.postStartListening()
+  
   api.getSimulationResults()
+  
+  print("Done!")
 ```
 
 ## Common Problems and Solutions
 
-Nothing reported yet, without a bug-fix released.
+N/A
 
 ## Report a Problem
 

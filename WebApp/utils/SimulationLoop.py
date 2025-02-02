@@ -1,7 +1,14 @@
+"""
+`simulationLoop()` clock times
+
+mean: 0.361 seconds for F15 with drag, no thrust vectoring
+standard deviation: 0.0623 seconds
+"""
+
 from __future__ import annotations
 from typing import Any, Dict
 import pandas as pd
-from queue import Queue
+from time import time
 
 from Quaternion import *
 from Integrator import *
@@ -67,6 +74,8 @@ def simulationLoop(
     serial_manager.activateListener()
     serial_manager.sendData(q=q)
   
+  start = time()
+  
   while t < tFinal:
     n += 1
     mass, cg, inertia_tensor = design.get_temporary_properties()
@@ -78,7 +87,7 @@ def simulationLoop(
     F = np.array([F[0], F[1], F[2]])
     M = np.array([M[0], M[1], M[2]])
     
-    F += mass * np.array([0.0, 0.0, -9.8])
+    F += mass * np.array([0.0, 0.0, -9.8]) - 0.5 * 0.99 * 0.2 * np.pi * 0.037 ** 2 * np.linalg.norm(v.v) * v.v # lazy man's drag force
     
     alpha = np.matmul(inertia_tensor_inv, M - np.cross(a=omega.v, b=np.matmul(inertia_tensor, omega.v)))
     alpha = Vector(elements=(alpha[0], alpha[1], alpha[2]))
@@ -130,6 +139,9 @@ def simulationLoop(
       if r.v[2] <= 0.0:
         break
   
+  print(f"Simulation took {time() - start:.3} seconds!")
+  
+  start = time()
   plotMotion(N=n, translation_vectors=positions, z_body_vectors=headings, dt=dt, burn_time=tvc.burn_time, save=save, filename=filename)
   
   data = pd.DataFrame({
@@ -145,7 +157,7 @@ def simulationLoop(
   })
   
   data.to_csv("temp.csv", sep=",")
-
+  print(f"File saves took {time() - start} seconds!")
 
 
 

@@ -5,8 +5,6 @@ All rights reserved.
 """
 
 from typing import Any
-from multiprocessing import Process
-from queue import Queue
 import numpy as np
 
 from Design import *
@@ -14,11 +12,8 @@ from Builder import *
 from MotorManager import *
 from Element import *
 from ElementTypes import *
-from Quaternion import *
 from SerialManager import *
 from ThrustVectorController import *
-from VectorPlotter import *
-from Integrator import *
 from SimulationLoop import simulationLoop
 
 
@@ -374,7 +369,7 @@ __all__ = [
 
 if __name__ == "__main__":
   api = PhysicsAPI()
-  api.postMotor({"motor": "E12"})
+  api.postMotor({"motor": "F15"})
   api.postMakeTVC()
   api.postAddElement({
     "flight_computer": ConfigDict(
