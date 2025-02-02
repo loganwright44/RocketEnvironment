@@ -6,12 +6,14 @@ from utils import PhysicsAPI
 
 app = Dash(__name__, use_pages=True, assets_folder="./assets")
 
+api = PhysicsAPI()
+
 app.layout = html.Div([
   dcc.Location(id="url", refresh=False),
   html.Title(children="Rocket Simulation App"),
   html.Div([
     html.Div([
-      dcc.Link(f"{page['name']}", href=page["relative_path"], className="nav-link", id=f"{page['name']}-link") for page in dash.page_registry.values()
+      dcc.Link(f"{page['name']}", href=page["relative_path"], className="nav-link", id=f"{page['name']}-link", refresh=True) for page in dash.page_registry.values()
     ], className="nav-container")
   ]),
   dash.page_container,

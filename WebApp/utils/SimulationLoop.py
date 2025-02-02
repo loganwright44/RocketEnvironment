@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict
 import pandas as pd
+from queue import Queue
 
 from Quaternion import *
 from Integrator import *
@@ -11,28 +12,36 @@ from Builder import *
 from ElementTypes import *
 from MotorManager import *
 from ThrustVectorController import *
+from SerialManager import *
 
 
-async def simulationLoop(
+def simulationLoop(
+    serial_manager: SerialManager,
     design: Design,
     tvc: ThrustVectorController,
     motor_idx: int,
     dt: float = 1e-2,
     save: bool = False,
     filename: str = None
-  ) -> Dict[str, bool]:
+  ) -> None:
   """ performs a generic model rocket flight simulation and produces solutions to the equations of motion
 
   - assumes all presets have been completed prior to call. verify this in the api or webapp side to prevent failures
-  
+
   Args:
-      design (Design): a design containing all information about the rocket
-      tvc (ThrustVectorController): the thrust vector controller object
-      motor_idx (int): the index of the motor in the design
-  
-  Returns:
-      Dict[str, bool]: {"res": bool, "data": pd.DataFrame}
+      serial_manager (SerialManager): a non-listening state serial manager object already connected to the port of interest
+      design (Design): a completed vehicle design
+      tvc (ThrustVectorController): a completed and initialized thrust vectoring unit
+      motor_idx (int): index of the motor in the design
+      dt (float, optional): small time step. Defaults to 1e-2.
+      save (bool, optional): file is always saved to temp.mp4, but you can modify that here. Defaults to False.
+      filename (str, optional): enter the filename if you wish to save it somewhere other than temp.mp4. Defaults to None.
   """
+  if serial_manager is None:
+    ignore_serial = True
+  else:
+    ignore_serial = False
+  
   t = 0.0
   dt = dt
   tFinal = 20.0
@@ -53,6 +62,10 @@ async def simulationLoop(
   v = design.v
   q = design.q
   omega = design.omega
+  
+  if not ignore_serial:
+    serial_manager.activateListener()
+    serial_manager.sendData(q=q)
   
   while t < tFinal:
     n += 1
@@ -100,6 +113,15 @@ async def simulationLoop(
     design.step(dt=dt)
     tvc.step(dt=dt)
     
+    if not ignore_serial:
+      if not serial_manager.queue.empty():
+        anglex, angley = serial_manager.queue.get()
+        anglex *= DEGREES_TO_RADIANS # convert both to radians from degrees
+        angley *= DEGREES_TO_RADIANS
+        tvc.updateSetpoint(targetx=anglex, targety=angley)
+      
+      serial_manager.sendData(q=q)
+    
     design.dynamic_elements[motor_idx][1] = tvc.getAttitude()
 
     t += dt
@@ -123,10 +145,6 @@ async def simulationLoop(
   })
   
   data.to_csv("temp.csv", sep=",")
-
-  return {"res": True}
-
-
 
 
 

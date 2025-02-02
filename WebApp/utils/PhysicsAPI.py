@@ -5,7 +5,8 @@ All rights reserved.
 """
 
 from typing import Any
-import asyncio
+from multiprocessing import Process
+from queue import Queue
 import numpy as np
 
 from Design import *
@@ -25,8 +26,10 @@ Request = Dict[str, Any]
 Response = Dict[str, Any]
 
 
-class PhysicsAPI(object):
+class PhysicsAPI:
+  _instance = None
   is_consolidated: bool = False
+  is_listening: bool = False
   motor_manager: MotorManager = None
   tvc: ThrustVectorController = None
   data_dict: Dict[str, ConfigDict] = {}
@@ -36,21 +39,87 @@ class PhysicsAPI(object):
   part_numbers: Dict[str, int] = None
   serial_manager: SerialManager = None
   
+  def __new__(cls, *args, **kwargs):
+    if cls._instance is None:
+      cls._instance = super().__new__(cls)
+    return cls._instance
+  
   def __init__(self):
-    print("Retrieved an instance of the PhysicsAPI objects")
+    if not hasattr(self, "initialized"):
+      self.initialized = True
+      print("Retrieved an instance of the PhysicsAPI objects")
+    else:
+      print("Accessed a running instance of PhysicsAPI")
+  
+  def postConnectSerial(self, req: Request) -> Response:
+    """ creates the serial manager object and attempts to connect
+
+    Args:
+        req (Request): {"port": str, "baud_rate": int}
+
+    Returns:
+        Response: key: res, value: bool
+    """
+    if "port" not in req.keys():
+      req["port"] = None
+    if "baud_rate" not in req.keys():
+      req["baud_rate"] = None
+    
+    self.serial_manager = SerialManager(port=req["port"], baud_rate=req["baud_rate"])
+    return {"res": self.serial_manager.startConnection()}
   
   def getAvailablePorts(self, req: Request = None) -> Response:
     """ gets a list of port names available on the device
 
     Returns:
-        Response: _description_
+        Response: key: res, value: list of port names (str)
     """
     self.serial_manager = SerialManager(baud_rate=115200)
     return {"res": self.serial_manager.availablePorts()}
   
-  def postConnectToPort(self, req: Request) -> Response:
-    self.serial_manager.port = req["port"]
-    self.serial_manager.startConnection()
+  def postStartListening(self, req: Request = None) -> Response:
+    """ starts the listener on the serial port
+
+    Args:
+        req (Request): empty, None
+
+    Returns:
+        Response: key: res, value: bool
+    """
+    self.serial_manager.activateListener()
+    self.is_listening = True
+    return {"res": True}
+  
+  def getFlightComputerPacket(self, req: Request = None) -> Dict[str, List[float]]:
+    """ attempts to get a packet of data from the flight computer if available
+
+    Args:
+        req (Request, optional): empty, None
+
+    Returns:
+        Response: key: res, value: bool
+    """
+    if not self.serial_manager.queue.empty():
+      servo_angles = self.serial_manager.queue.get()
+      return {"res": servo_angles}
+    else:
+      return {"res": []}
+  
+  def postWriteToFlightComputer(self, req: Request) -> Response:
+    """ writes data to the flight computer
+
+    Args:
+        req (Request): {"data": q (Quaternion)}
+
+    Returns:
+        Response: key: res, value: bool
+    """
+    if "data" not in req.keys():
+      req["data"] = Quaternion(default=True)
+    
+    self.serial_manager.sendData(q=req["data"])
+    
+    return {"res": True}
   
   def getMotorOptions(self, req: Request) -> Response:
     """ gets the list of supported solid motor boosters
@@ -278,21 +347,25 @@ class PhysicsAPI(object):
     self.tvc.forceToTarget()
     return {"res": True}
   
-  def getSimulationResults(self, req: Request = {}) -> Response:
+  def getSimulationResults(self, req: Request = {}) -> None:
     """ this function calls the simulation method based on the finalized design - all presets should have been performed already
 
     Args:
         req (Request, optional): {"save": bool, "filename": str name of file (include .mp4 in the filename)}. Defaults to None.
 
     Returns:
-        Response: key: res, value: 
+        None
     """
     if "save" not in req.keys():
       req["save"] = True
     if "filename" not in req.keys():
       req["filename"] = "temp.mp4"
     
-    return asyncio.run(simulationLoop(design=self.design, tvc=self.tvc, motor_idx=self.motor_index, save=req["save"], filename=req["filename"]))
+    if self.is_listening:
+      simulationLoop(serial_manager=self.serial_manager, design=self.design, tvc=self.tvc, motor_idx=self.motor_index, dt=1e-2, save=req["save"], filename=req["filename"])
+    else:
+      simulationLoop(serial_manager=None, design=self.design, tvc=self.tvc, motor_idx=self.motor_index, dt=1e-2, save=req["save"], filename=req["filename"])
+    
 
 
 __all__ = [
@@ -332,4 +405,10 @@ if __name__ == "__main__":
   api.postLockStaticElements()
   api.postSetTVC({"x": 0.0, "y": 0.0})
   
+  res = api.postConnectSerial({"port": None, "baud_rate": 115200})
+  if res["res"]:
+    api.postStartListening()
+  
   api.getSimulationResults()
+  
+  print("Done!")
