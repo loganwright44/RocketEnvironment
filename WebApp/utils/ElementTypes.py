@@ -86,5 +86,5 @@ __all__ = [
   "CylinderDictS",
   "TubeDictS",
   "ConeDictS",
-  "HollowConeDictS",
+  "HollowConeDictS"
 ]

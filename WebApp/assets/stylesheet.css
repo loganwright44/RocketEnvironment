@@ -75,27 +75,29 @@ html, body {
   animation: typing 4s steps(40) 1s 1 normal both;
 }
 
-.entry-point::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 3px;
-  height: 100%;
-  animation: blink 0.75s step-end infinite;
+.dropdown-container {
+  display: flex;
+  justify-content: center;
+  width: 100vw;
+  gap: 20px;
 }
 
-@keyframes typing {
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
+.dropdown {
+  display: inline-block;
+  color: black;
+  min-width: 300px;
 }
 
-@keyframes blink {
-  50% {
-    border-color: transparent;
-  }
+.text-field {
+  color: black;
+  border-radius: 8px;
+  width: 300px;
+}
+
+.fields-container {
+  display: flex;
+  justify-content: center;
+  width: 100vw;
+  gap: 20px;
+  font-size: inherit;
 }

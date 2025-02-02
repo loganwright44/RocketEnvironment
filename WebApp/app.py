@@ -2,11 +2,9 @@ import dash
 from dash import Dash, html, dcc, Input, Output, callback
 import plotly.express as px
 
-from utils import PhysicsAPI
-
 app = Dash(__name__, use_pages=True, assets_folder="./assets")
 
-api = PhysicsAPI()
+from core import api
 
 app.layout = html.Div([
   dcc.Location(id="url", refresh=False),
