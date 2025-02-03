@@ -28,7 +28,7 @@ html, body {
   background-color: rgb(49, 49, 49);
   color: white;
   text-decoration: None;
-  font-size: 15px;
+  font-size: medium;
   font-weight: bold;
   border-radius: 8px;
 }
@@ -86,10 +86,12 @@ html, body {
   display: inline-block;
   color: black;
   min-width: 300px;
+  font-size: medium;
 }
 
 .text-field {
   color: black;
+  font-size: medium;
   border-radius: 8px;
   width: 300px;
 }
@@ -133,12 +135,16 @@ html, body {
 
 .submit-button {
   padding: 10px;
-  width: 100px;
+  width: 150px;
+  font-size: medium;
+}
+
+.parts-container {
+  display: block;
 }
 
 .part-row {
   display: inline-block;
-
 }
 
 .save-button-container {

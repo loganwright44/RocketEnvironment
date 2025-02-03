@@ -86,7 +86,8 @@ layout = html.Div([
       )
     ], className="args-container"),
     html.Div(
-      id="parts-div"
+      id="parts-div",
+      className="parts-container"
     ),
     html.Div([
       html.Button("Save Design", id="save-design-button", className="submit-button")
