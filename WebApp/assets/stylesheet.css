@@ -97,7 +97,50 @@ html, body {
 .fields-container {
   display: flex;
   justify-content: center;
+  align-items: center;
   width: 100vw;
   gap: 20px;
   font-size: inherit;
+}
+
+.args-container {
+  display: flex;
+  width: 100vw;
+  justify-content: center;
+  overflow-x: hidden;
+  padding-top: 10px;
+  gap: 10px;
+}
+
+.arg-input {
+  color: black;
+  display: inline-block;
+  border-radius: 8px;
+  width: 100px;
+}
+
+.arg-row {
+  display: flex;
+  justify-content: center;
+}
+
+.button-container {
+  width: 30%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.submit-button {
+  padding: 10px;
+  width: 100px;
+}
+
+.part-row {
+  display: inline-block;
+
+}
+
+.save-button-container {
+  display: block;
 }

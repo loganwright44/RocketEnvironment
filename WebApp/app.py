@@ -2,7 +2,7 @@ import dash
 from dash import Dash, html, dcc, Input, Output, callback
 import plotly.express as px
 
-app = Dash(__name__, use_pages=True, assets_folder="./assets")
+app = Dash(__name__, suppress_callback_exceptions=True, use_pages=True, assets_folder="./assets")
 
 from core import api
 
