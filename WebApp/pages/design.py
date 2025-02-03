@@ -43,7 +43,7 @@ from core import api
 
 layout = html.Div([
   html.Div([
-    html.H1("Spacecraft Design"),
+    html.H1("Vehicle Design Suite"),
     html.Div([
       dcc.Input(
         type="text",
@@ -73,8 +73,11 @@ layout = html.Div([
         id="dynamic-dropdown",
         className="dropdown",
         placeholder="Select static or dynamic type..."
-      )
-    ], className="dropdown-container"),
+      ),
+      html.Div([
+        html.Button("Save/Show Design", id="save-design-button", className="submit-button")
+      ], id="save-design-container", className="save-design-container"),
+      ], className="dropdown-container"),
     html.Div([
       html.Div(
         id="element-fields",
@@ -89,9 +92,10 @@ layout = html.Div([
       id="parts-div",
       className="parts-container"
     ),
-    html.Div([
-      html.Button("Save Design", id="save-design-button", className="submit-button")
-    ], id="save-design-container", className="save-design-container")
+    html.Div(
+      id="design-display",
+      className="design-display"
+    )
   ])
 ], className="page-base")
 
@@ -162,17 +166,24 @@ def make_and_show_parts(n_clicks):
 
 
 @callback(
-  Output("save-design-container", "children"),
+  Output("design-display", "children"),
   Input("save-design-button", "n_clicks"),
   prevent_initial_call = True
 )
 def save_design(n_clicks):
   if n_clicks:
     if len(data_dict) > 0:
-      return "Saved!"
+      for name, config in data_dict.items():
+        api.postAddElement({name: config})
+      
+      api.postBuildDesign()
+      
+      summary = api.getDesignSummary()["res"]
+      return [
+        html.P(i, className="summary-row") for i in summary.split("\n")
+      ]
     else:
       return [
-        "Cannot save an empty design! Add parts first.",
-        html.Button("Save Design", id="save-design-button", className="submit-button")
+        "Cannot save an empty design! Add parts first."
       ]
   

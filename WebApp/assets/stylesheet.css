@@ -5,6 +5,52 @@ html, body {
   height: 100%;
   overflow-x: hidden;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
+}
+
+.summary-row {
+  display: block;
+  font-family: inherit;
+}
+
+.design-display {
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+}
+
+.body-text-container {
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+.body-text {
+  padding: 10px;
+  text-indent: 20px;
+  width: 60%;
+}
+
+.video-container {
+  display: flex;
+  justify-content: center;
+  width: 100vw;
+  height: auto;
+}
+
+video {
+  display: inline-block;
+  width: 40%;
+  border-radius: 30px;
+}
+
+.video-quote {
+  display: flex;
+  justify-content: center;
+  width: 100vw;
+  font-size: small;
+  font-style: italic;
 }
 
 .web-app {
@@ -135,7 +181,7 @@ html, body {
 
 .submit-button {
   padding: 10px;
-  width: 150px;
+  width: 200px;
   font-size: medium;
 }
 
@@ -149,4 +195,10 @@ html, body {
 
 .save-button-container {
   display: block;
+}
+
+.save-design-container {
+  display: flex;
+  padding-right: 20px;
+  justify-content: right;
 }

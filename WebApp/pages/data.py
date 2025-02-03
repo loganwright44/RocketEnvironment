@@ -7,6 +7,6 @@ from core import api
 
 layout = html.Div([
   html.Div([
-    html.H1("Flight Data")
+    html.H1("Data Analysis Suite")
   ])
 ], className="page-base")
