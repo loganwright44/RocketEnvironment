@@ -78,13 +78,13 @@ layout = html.Div([
         placeholder="Select static or dynamic type..."
       ),
       html.Div([
-        html.Button("Save/Show Design", id="save-design-button", className="submit-button")
+        html.Button("Show/Update Design", id="save-design-button", className="submit-button")
       ], id="save-design-container", className="save-design-container"),
       ], className="dropdown-container"),
     html.Div([
       html.Div(
         id="element-fields",
-        className="args-container"
+        className="elements-container"
       ),
       html.Div(
         id="submit-div",
@@ -98,6 +98,10 @@ layout = html.Div([
     html.Div(
       id="design-display",
       className="design-display"
+    ),
+    html.Div(
+      id="element-manipulation",
+      className="manipulation-container"
     )
   ])
 ], className="page-base")
@@ -154,7 +158,7 @@ def show_submit_button(values):
   Output("parts-div", "children"),
   Input("create-element-button", "n_clicks")
 )
-def make_and_show_parts(n_clicks):
+def make_parts(n_clicks):
   if n_clicks:
     global part_arg_values
     global part_args
@@ -174,23 +178,34 @@ def make_and_show_parts(n_clicks):
 
 
 @callback(
-  Output("design-display", "children"),
+  [
+    Output("design-display", "children"),
+    Output("element-manipulation", "children")
+  ],
   Input("save-design-button", "n_clicks"),
   prevent_initial_call = True
 )
-def show_design(n_clicks):
+def update_design(n_clicks):
   if n_clicks:
     if len(data_dict) > 0:
       for name, config in data_dict.items():
         api.postAddElement({name: config})
       
-      summary = api.getDesignSummary()["res"]
+      summary: str = api.getDesignSummary()["res"]
+      summary = summary[1:-2]
+      summary = summary.split("}, ")
       
       return [
-        html.P(summary, className="summary-row")
+        html.P(line + "}", className="summary-row") for line in summary
+      ], [
+        html.Div([
+          dcc.Input(placeholder=f"X", type="number", id={"type": "x", "index": idx}, className="arg-input"),
+          dcc.Input(placeholder=f"Y", type="number", id={"type": "y", "index": idx}, className="arg-input"),
+          dcc.Input(placeholder=f"Z", type="number", id={"type": "z", "index": idx}, className="arg-input")
+        ]) for idx in range(len(summary))
       ]
     else:
       return [
         "Cannot save an empty design! Add parts first."
-      ]
+      ], []
   
