@@ -3,12 +3,15 @@ from dash import html, dcc, callback, Input, Output
 
 from utils.Builder import *
 
+data_dict = {}
+
 part_args = {}
 data_dict = {}
 part_arg_values = []
 part_name = ""
 part_obj = None
 part_obj_dict = None
+is_static = False
 
 DashTypes = {
   "float": "number",
@@ -117,14 +120,17 @@ def create_element_fields(name, element_name, dynamic_or_static):
     global part_name
     global part_obj
     global part_obj_dict
+    global is_static
     
+    is_static = True if dict_type[-1] == "S" else False
     part_obj_dict = ElementDictTypes[dict_type]
     part_obj = ElementTypes[element_name]
     part_name = name
     part_args = {key: value.__forward_arg__ for key, value in part_obj_dict.__annotations__.items()}
+    _ = part_args.pop("is_static")
     
     return [html.Div([
-        html.P(f"{arg.title()}:", className="args-text"),
+        html.P(f"{arg.title()}: ", className="arg-text"),
         dcc.Input(placeholder=f"{arg.title()}", id={"type": "arg-input", "index": arg}, className="arg-input", type=f"{DashTypes[part_args[arg]]}", required=True)
       ], className="arg-row") for arg in part_args.keys()]
   
@@ -136,7 +142,7 @@ def create_element_fields(name, element_name, dynamic_or_static):
   Input({"type": "arg-input", "index": dash.ALL}, "value")
 )
 def show_submit_button(values):
-  if all(values) and len(values) > 0:
+  if all([value != None for value in values]) and len(values) > 0:
     global part_arg_values
     part_arg_values = list(values)
     return html.Button("Create Part", className="submit-button", id="create-element-button")
@@ -156,8 +162,10 @@ def make_and_show_parts(n_clicks):
     global part_obj_dict
     global part_name
     global data_dict
+    global is_static
     
     params = {arg_name: value for arg_name, value in zip(part_args.keys(), part_arg_values)}
+    params.update({"is_static": is_static})
     data_dict[part_name] = ConfigDict(Type=part_obj, Args=part_obj_dict(**params))
   
   return [
@@ -170,17 +178,16 @@ def make_and_show_parts(n_clicks):
   Input("save-design-button", "n_clicks"),
   prevent_initial_call = True
 )
-def save_design(n_clicks):
+def show_design(n_clicks):
   if n_clicks:
     if len(data_dict) > 0:
       for name, config in data_dict.items():
         api.postAddElement({name: config})
       
-      api.postBuildDesign()
-      
       summary = api.getDesignSummary()["res"]
+      
       return [
-        html.P(i, className="summary-row") for i in summary.split("\n")
+        html.P(summary, className="summary-row")
       ]
     else:
       return [

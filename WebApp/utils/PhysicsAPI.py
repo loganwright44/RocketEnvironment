@@ -274,7 +274,7 @@ class PhysicsAPI:
     if self.design is not None:
       return {"res": self.design.__str__()}
     else:
-      return {"res": ""}
+      return {"res": self.data_dict.__str__()}
   
   def postElementAdjustment(self, req: Request) -> Response:
     """ translates/rotates an element body in design before consolidation

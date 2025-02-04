@@ -9,11 +9,15 @@ html, body {
 }
 
 .summary-row {
-  display: block;
+  display: flex;
+  align-items: center;
+  width: 100%;
   font-family: inherit;
+  font-size: medium;
 }
 
 .design-display {
+  display: block;
   width: 100vw;
   justify-content: center;
   align-items: center;
@@ -54,11 +58,12 @@ video {
 }
 
 .web-app {
-  width: 100%;
+  width: 100vw;
   min-height: 100vh;
   background-color: black;
   color: white;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .nav-container {
@@ -153,23 +158,30 @@ video {
 
 .args-container {
   display: flex;
-  width: 100vw;
+  width: 105%;
+  align-items: center;
   justify-content: center;
   overflow-x: hidden;
-  padding-top: 10px;
+  padding: 10px;
   gap: 10px;
 }
 
 .arg-input {
   color: black;
+  font-size: medium;
   display: inline-block;
+  width: 75px;
   border-radius: 8px;
-  width: 100px;
+  height: 30px;
 }
 
 .arg-row {
   display: flex;
-  justify-content: center;
+}
+
+.arg-text {
+  font-size: medium;
+  padding: 10px;
 }
 
 .button-container {
@@ -186,11 +198,13 @@ video {
 }
 
 .parts-container {
-  display: block;
+  width: 100vw;
+  justify-content: center;
 }
 
 .part-row {
-  display: inline-block;
+  display: flex;
+  align-items: center;
 }
 
 .save-button-container {

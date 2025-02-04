@@ -5,6 +5,6 @@ dash.register_page(__name__, path="/simulation", order=3)
 
 layout = html.Div([
   html.Div([
-    html.H1("Simulate A Spacecraft")
+    html.H1("Vehicle Simulation Suite")
   ])
 ], className="page-base")
