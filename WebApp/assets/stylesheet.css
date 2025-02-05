@@ -8,14 +8,6 @@ html, body {
   line-height: 1.6;
 }
 
-.summary-row {
-  display: flex;
-  justify-content: center;
-  width: 100vw;
-  font-family: inherit;
-  font-size: medium;
-}
-
 .design-display {
   display: block;
   width: 100vw;
@@ -129,6 +121,7 @@ video {
 .dropdown-container {
   display: flex;
   justify-content: center;
+  align-items: center;
   width: 100vw;
   gap: 20px;
 }
@@ -143,6 +136,8 @@ video {
 .text-field {
   color: black;
   font-size: medium;
+  height: 30px;
+  align-items: center;
   border-radius: 8px;
   width: 300px;
 }
@@ -219,4 +214,35 @@ video {
   display: flex;
   padding-right: 20px;
   justify-content: right;
+}
+
+.manipulation-container {
+  width: 100vw;
+}
+
+.manipulation-row {
+  display: flex;
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 60%;
+  font-family: inherit;
+  font-size: medium;
+}
+
+.motor-field {
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }

@@ -1,7 +1,10 @@
 import dash
 from dash import html, dcc, callback, Input, Output
+from dash.dependencies import State, ALL
 
 from utils.Builder import *
+
+import numpy as np
 
 data_dict = {}
 
@@ -59,8 +62,7 @@ layout = html.Div([
         [
           "Cylinder",
           "Tube",
-          "Cone",
-          "HollowCone"
+          "Cone"
         ],
         searchable=True,
         id="element-dropdown",
@@ -80,7 +82,8 @@ layout = html.Div([
       html.Div([
         html.Button("Show/Update Design", id="save-design-button", className="submit-button")
       ], id="save-design-container", className="save-design-container"),
-      ], className="dropdown-container"),
+    ], className="dropdown-container", id="upper-container"),
+    html.Button("Load Parts into Design", className="design-button", id="design-button", disabled=True),
     html.Div([
       html.Div(
         id="element-fields",
@@ -96,16 +99,44 @@ layout = html.Div([
       className="parts-container"
     ),
     html.Div(
-      id="design-display",
-      className="design-display"
-    ),
-    html.Div(
       id="element-manipulation",
       className="manipulation-container"
     )
-  ])
+  ]),
+  html.Div([
+      dcc.Dropdown(
+        options=["F15", "E12"],
+        placeholder="Select motor type...",
+        searchable=True,
+        className="dropdown",
+        id="motor-dropdown"
+      ),
+      html.Button(
+        "Use Motor",
+        className="submit-button",
+        id="motor-submit"
+      )
+    ], className="motor-field", id="motor-field")
 ], className="page-base")
 
+
+@callback(
+  Output("motor-field", "children"),
+  Input("motor-submit", "n_clicks"),
+  State("motor-dropdown", "value"),
+  prevent_initial_call = True
+)
+def set_motor(n_clicks, motor):
+  print(motor, n_clicks)
+  if n_clicks:
+    api.postMotor({"motor": motor})
+    api.postMakeTVC()
+    return f"Using {motor}"
+  else:
+    return [
+      dcc.Dropdown(options=["F15", "E12"], searchable=True, className="dropdown", id="motor-dropdown"),
+      html.Button("Add motor", className="submit-button", id="motor-submit")
+    ]
 
 
 @callback(
@@ -155,33 +186,47 @@ def show_submit_button(values):
 
 
 @callback(
-  Output("parts-div", "children"),
-  Input("create-element-button", "n_clicks")
+  Output("design-button", "disabled", allow_duplicate=True),
+  Input("save-design-button", "n_clicks"),
+  prevent_initial_call = True
+)
+def show_save_button(n_clicks):
+  if n_clicks and len(data_dict) > 0:
+    return False
+  
+  return True
+
+
+@callback(
+  [
+    Output("parts-div", "children"),
+    Output("design-button", "disabled", allow_duplicate=True)
+  ],
+  Input("create-element-button", "n_clicks"),
+  prevent_initial_call = True
 )
 def make_parts(n_clicks):
+  global data_dict
+  
   if n_clicks:
     global part_arg_values
     global part_args
     global part_obj
     global part_obj_dict
     global part_name
-    global data_dict
     global is_static
     
     params = {arg_name: value for arg_name, value in zip(part_args.keys(), part_arg_values)}
     params.update({"is_static": is_static})
     data_dict[part_name] = ConfigDict(Type=part_obj, Args=part_obj_dict(**params))
+    
+    return "", False
   
-  return [
-    html.H3(f"{name}", className="part-row") for name in data_dict.keys()
-  ]
+  return "", True
 
 
 @callback(
-  [
-    Output("design-display", "children"),
-    Output("element-manipulation", "children")
-  ],
+  Output("element-manipulation", "children"),
   Input("save-design-button", "n_clicks"),
   prevent_initial_call = True
 )
@@ -196,16 +241,59 @@ def update_design(n_clicks):
       summary = summary.split("}, ")
       
       return [
-        html.P(line + "}", className="summary-row") for line in summary
-      ], [
         html.Div([
-          dcc.Input(placeholder=f"X", type="number", id={"type": "x", "index": idx}, className="arg-input"),
-          dcc.Input(placeholder=f"Y", type="number", id={"type": "y", "index": idx}, className="arg-input"),
-          dcc.Input(placeholder=f"Z", type="number", id={"type": "z", "index": idx}, className="arg-input")
-        ]) for idx in range(len(summary))
+          html.P(line + "}", className="summary-row"),
+          html.P("Offsets: ", className="arg-text"),
+          dcc.Input(placeholder=f"X", type="number", id={"type": "x", "index": idx}, className="arg-input", value=0.0),
+          dcc.Input(placeholder=f"Y", type="number", id={"type": "y", "index": idx}, className="arg-input", value=0.0),
+          dcc.Input(placeholder=f"Z", type="number", id={"type": "z", "index": idx}, className="arg-input", value=0.0),
+          html.Button("Submit", id={"type": "button", "index": idx}, className="submit-button", style={"width": "75px"})
+        ], className="manipulation-row") for idx, line in enumerate(summary)
       ]
     else:
       return [
         "Cannot save an empty design! Add parts first."
       ], []
-  
+
+
+@callback(
+  [
+    Output({"type": "x", "index": ALL}, "value"),
+    Output({"type": "y", "index": ALL}, "value"),
+    Output({"type": "z", "index": ALL}, "value"),
+  ],
+  Input({"type": "button", "index": ALL}, "n_clicks"),
+  [
+    State({"type": "x", "index": ALL}, "value"),
+    State({"type": "y", "index": ALL}, "value"),
+    State({"type": "z", "index": ALL}, "value")
+  ],
+  prevent_initial_call = True
+)
+def submit_offset(n_clicks, x_vals, y_vals, z_vals):
+  if n_clicks:
+    idx = 0
+    global data_dict
+    part_ids = list(data_dict.keys())
+    for x, y, z in zip(x_vals, y_vals, z_vals):
+      api.postElementAdjustment({"id": f"{part_ids[idx]}", "translation": np.array([x, y, z])})
+      print(f"{part_ids[idx]} moved to [{x}, {y}, {z}]")
+      idx += 1
+    
+    return [0.0] * len(x_vals), [0.0] * len(x_vals), [0.0] * len(x_vals)
+
+
+@callback(
+  Output("upper-container", "children"),
+  Input("design-button", "n_clicks"),
+  prevent_initial_call = True
+)
+def add_elements(n_clicks):
+  if n_clicks:
+    global data_dict
+    for name, config in data_dict.items():
+      api.postAddElement({name: config})
+    
+    api.postBuildDesign()
+    
+    return "Loaded all parts into the design! Make sure to submit the final part offsets before clicking 'Save Design'."

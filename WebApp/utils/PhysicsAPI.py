@@ -169,10 +169,10 @@ class PhysicsAPI:
         req (Request): a request containing key: req, value: Dict["name": ConfigDict(...)]
 
     Returns:
-        Response: key: res, value: None
+        Response: key: res, value: bool
     """
     self.data_dict.update(req)
-    return {"res": None}
+    return {"res": True}
   
   def deleteElement(self, req: Request) -> Response:
     """ deletes an Element from the design list
@@ -330,7 +330,7 @@ class PhysicsAPI:
     self.design.consolidate_static_elements()
   
   def postSetTVC(self, req: Request) -> Response:
-    """ sets the angle for the TVC at launch and forces setting regardless servo speed
+    """ sets the angle in radians for the TVC at launch and forces setting regardless servo speed
 
     Args:
         req (Request): {"x": (float) angle_x, "y": (float) angle_y}
