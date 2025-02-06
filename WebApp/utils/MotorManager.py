@@ -100,12 +100,12 @@ class MotorManager:
     Returns:
         Dict[str, ConfigDict]: the `rocket_motor` element of a design
     """
-    radius = (self.params["diameter"][0] + normal_random_variable() * self.params["diameter"][1]) * 1e-3 / 2
-    height = (self.params["length"][0] + normal_random_variable() * self.params["length"][1]) * 1e-3
-    initial_mass = (self.params["total mass"][0] + normal_random_variable() * self.params["total mass"][1]) * 1e-3
-    propellant_mass = (self.params["propellant mass"][0] + normal_random_variable() * self.params["propellant mass"][1]) * 1e-3
+    radius = (self.params["diameter"][0] + normal_random_variable() * self.params["diameter"][1] / 100) * 1e-3 / 2
+    height = (self.params["length"][0] + normal_random_variable() * self.params["length"][1] / 100) * 1e-3
+    initial_mass = (self.params["total mass"][0] + normal_random_variable() * self.params["total mass"][1] / 100) * 1e-3
+    propellant_mass = (self.params["propellant mass"][0] + normal_random_variable() * self.params["propellant mass"][1] / 100) * 1e-3
     final_mass = initial_mass - propellant_mass
-    burn_time = (self.params["burn time"][0] + normal_random_variable() * self.params["burn time"][1])
+    burn_time = (self.params["burn time"][0] + normal_random_variable() * self.params["burn time"][1] / 100)
     config_dict = ConfigDict(
       Type=Cylinder,
       Args=CylinderDictD(radius=radius, height=height, mass=initial_mass, is_static=False, min_mass=final_mass, duration=burn_time)

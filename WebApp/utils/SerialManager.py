@@ -4,6 +4,7 @@ import struct
 import serial
 from queue import Queue
 import threading
+from glob import glob
 
 from Quaternion import *
 
@@ -34,9 +35,9 @@ class SerialManager:
     Returns:
         list: list of port names as a string
     """
-    return [port.device for port in serial.tools.list_ports.comports()]
+    return [port for port in glob("/dev/tty.*")]
   
-  def startConnection(self) -> bool:
+  async def startConnection(self) -> bool:
     """ attempts to connect to the set port
 
     Returns:
@@ -46,9 +47,10 @@ class SerialManager:
       return False
     
     try:
-      self.serial = serial.Serial(port=self.port, baudrate=self.baud_rate, timeout=1)
-      print(f"Serial connection successful to port `{self.port}`")
-      return True
+      self.serial = await serial.Serial(port=self.port, baudrate=self.baud_rate, timeout=5)
+      if self.serial.is_open:
+        print(f"Serial connection successful to port `{self.port}`")
+        return True
     except serial.SerialException as e:
       print(f"Error: {e}")
       return False

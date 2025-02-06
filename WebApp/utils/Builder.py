@@ -48,10 +48,13 @@ class Builder:
 
 def objectFactory(data_dict: Dict[str, ConfigDict]) -> dict:
   instances = {}
+  idx = 0
   for unique_name, config in data_dict.items():
     cls = config["Type"]
     args = config.get("Args", {})
     instances[unique_name] = cls(name=unique_name, **args)
+    instances[unique_name].id = idx # apparently the auto class counter was not working on the Element subclasses
+    idx += 1
   
   return instances
 

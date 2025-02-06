@@ -46,7 +46,7 @@ class PhysicsAPI:
     else:
       print("Accessed a running instance of PhysicsAPI")
   
-  def postConnectSerial(self, req: Request) -> Response:
+  async def postConnectSerial(self, req: Request = {}) -> Response:
     """ creates the serial manager object and attempts to connect
 
     Args:
@@ -61,7 +61,8 @@ class PhysicsAPI:
       req["baud_rate"] = None
     
     self.serial_manager = SerialManager(port=req["port"], baud_rate=req["baud_rate"])
-    return {"res": self.serial_manager.startConnection()}
+    connection = await self.serial_manager.startConnection()
+    return {"res": connection}
   
   def getAvailablePorts(self, req: Request = None) -> Response:
     """ gets a list of port names available on the device
@@ -272,9 +273,9 @@ class PhysicsAPI:
         Response: key: res, value: str
     """
     if self.design is not None:
-      return {"res": self.design.__str__()}
+      return {"res": self.data_dict.__str__(), "design": self.design.__str__()}
     else:
-      return {"res": self.data_dict.__str__()}
+      return {"res": self.data_dict.__str__(), "design": None}
   
   def postElementAdjustment(self, req: Request) -> Response:
     """ translates/rotates an element body in design before consolidation

@@ -128,6 +128,7 @@ video {
 
 .dropdown {
   display: inline-block;
+  align-items: center;
   color: black;
   min-width: 300px;
   font-size: medium;
@@ -245,4 +246,59 @@ video {
   gap: 20px;
   padding-top: 10px;
   padding-bottom: 10px;
+}
+
+.design-button-container {
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.design-button {
+  width: 50vw;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  background-color: white;
+}
+
+.serial-container {
+  display: flex;
+  width: 100vw;
+  justify-content: center;
+  padding: 20px;
+  gap: 10px;
+}
+
+.status-div {
+  display: flex;
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  font-size: large;
+  font-family: inherit;
+}
+
+.bypass-container {
+  display: flex;
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.bypass-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: red;
+  color: white;
+  font-weight: bold;
+  padding: 8px;
+  width: 300px;
 }
