@@ -156,7 +156,7 @@ def simulationLoop(
     "omega": omegas
   })
   
-  data.to_csv("temp.csv", sep=",")
+  data.to_csv("./WebApp/assets/simulation.csv", sep=",")
   print(f"File saves took {time() - start} seconds!")
 
 

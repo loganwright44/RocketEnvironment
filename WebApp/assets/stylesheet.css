@@ -38,7 +38,7 @@ html, body {
 video {
   display: inline-block;
   width: 40%;
-  border-radius: 30px;
+  border-radius: 8px;
 }
 
 .video-quote {
@@ -301,4 +301,19 @@ video {
   font-weight: bold;
   padding: 8px;
   width: 300px;
+}
+
+.simulation-container {
+  display: flex;
+  width: 100vw;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.bottom-spacing {
+  display: flex;
+  width: 100vw;
+  height: 50px;
+  justify-content: center;
 }

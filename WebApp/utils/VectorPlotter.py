@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from typing import List
@@ -55,6 +56,7 @@ def plotOrientation(N: int, vectors: List[Vector], axes_of_rotation: List[Vector
 
 
 def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[Vector], dt: float, burn_time: float, save: bool = False, filename: str = None) -> None:
+  matplotlib.use("Agg")
   fig = plt.figure()
   ax = fig.add_subplot(projection="3d")
 
@@ -105,7 +107,7 @@ def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[V
   
   if save:
     if filename is None:
-      ani.save("rocket_motion.mp4", writer="ffmpeg", fps=int(1 / dt))
+      ani.save("./WebApp/assets/simulation.mp4", writer="ffmpeg", fps=int(1 / dt))
     else:
       if filename.endswith(".mp4"):
         ani.save(filename, writer="ffmpeg", fps=int(1 / dt))

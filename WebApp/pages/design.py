@@ -318,9 +318,14 @@ def submit_offset(n_clicks, x_vals, y_vals, z_vals):
     idx = 0
     global data_dict
     part_ids = list(data_dict.keys())
+    
+    print(part_ids)
     for x, y, z in zip(x_vals, y_vals, z_vals):
       api.postElementAdjustment({"id": f"{part_ids[idx]}", "translation": np.array([x, y, z])})
       print(f"{part_ids[idx]} moved to [{x}, {y}, {z}]")
+      if idx + 1 == len(part_ids):
+        break
+      
       idx += 1
     
     return x_vals, y_vals, z_vals

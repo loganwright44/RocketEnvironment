@@ -46,7 +46,7 @@ class PhysicsAPI:
     else:
       print("Accessed a running instance of PhysicsAPI")
   
-  async def postConnectSerial(self, req: Request = {}) -> Response:
+  def postConnectSerial(self, req: Request = {}) -> Response:
     """ creates the serial manager object and attempts to connect
 
     Args:
@@ -61,7 +61,7 @@ class PhysicsAPI:
       req["baud_rate"] = None
     
     self.serial_manager = SerialManager(port=req["port"], baud_rate=req["baud_rate"])
-    connection = await self.serial_manager.startConnection()
+    connection = self.serial_manager.startConnection()
     return {"res": connection}
   
   def getAvailablePorts(self, req: Request = None) -> Response:
@@ -70,7 +70,7 @@ class PhysicsAPI:
     Returns:
         Response: key: res, value: list of port names (str)
     """
-    self.serial_manager = SerialManager(baud_rate=115200)
+    self.serial_manager = SerialManager()
     return {"res": self.serial_manager.availablePorts()}
   
   def postStartListening(self, req: Request = None) -> Response:
@@ -355,7 +355,7 @@ class PhysicsAPI:
     if "save" not in req.keys():
       req["save"] = True
     if "filename" not in req.keys():
-      req["filename"] = "temp.mp4"
+      req["filename"] = None
     
     if self.is_listening:
       simulationLoop(serial_manager=self.serial_manager, design=self.design, tvc=self.tvc, motor_idx=self.motor_index, dt=1e-2, save=req["save"], filename=req["filename"])

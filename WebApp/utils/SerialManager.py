@@ -20,7 +20,7 @@ class SerialManager:
       cls._instance = super().__new__(cls)
     return cls._instance
   
-  def __init__(self, port: str, baud_rate: int = 9600):
+  def __init__(self, port: str = None, baud_rate: int = 9600):
     if not hasattr(self, "initialized"):
       self.queue = Queue(maxsize=20)
       self.initialized = True
@@ -37,17 +37,17 @@ class SerialManager:
     """
     return [port for port in glob("/dev/tty.*")]
   
-  async def startConnection(self) -> bool:
+  def startConnection(self) -> bool:
     """ attempts to connect to the set port
 
     Returns:
         bool: success or failure to connect
     """
-    if self.port is None or self.baud_rate is False:
+    if self.port is None or self.baud_rate is None:
       return False
     
     try:
-      self.serial = await serial.Serial(port=self.port, baudrate=self.baud_rate, timeout=5)
+      self.serial = serial.Serial(port=self.port, baudrate=self.baud_rate, timeout=5)
       if self.serial.is_open:
         print(f"Serial connection successful to port `{self.port}`")
         return True
@@ -98,3 +98,7 @@ def serializeQuaternion(q: Quaternion) -> bytes:
       bytes: the packed data ready for serial transmission
   """
   return struct.pack(QUATERNION_PACKET, *(q.q[0], q.q[1][0], q.q[2][1], q.q[3][2]))
+
+if __name__ == "__main__":
+  ser = SerialManager("/dev/tty.usbserial-210", 115200)
+  ser.startConnection()
