@@ -55,12 +55,31 @@ def plotOrientation(N: int, vectors: List[Vector], axes_of_rotation: List[Vector
   plt.show()
 
 
-def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[Vector], dt: float, burn_time: float, save: bool = False, filename: str = None) -> None:
+def plotMotion(
+  N: int,
+  translation_vectors: List[Vector],
+  x_body_vectors: List[Vector],
+  y_body_vectors: List[Vector],
+  z_body_vectors: List[Vector],
+  dt: float, burn_time: float,
+  save: bool = False,
+  filename: str = None
+) -> None:
   matplotlib.use("Agg")
   fig = plt.figure()
   ax = fig.add_subplot(projection="3d")
 
-  def getVector(index: int):
+  def getXVector(index: int):
+    v = x_body_vectors[index]
+    t = translation_vectors[index]
+    return t[0], t[1], t[2], v[0], v[1], v[2]
+  
+  def getYVector(index: int):
+    v = y_body_vectors[index]
+    t = translation_vectors[index]
+    return t[0], t[1], t[2], v[0], v[1], v[2]
+  
+  def getZVector(index: int):
     v = z_body_vectors[index]
     t = translation_vectors[index]
     return t[0], t[1], t[2], v[0], v[1], v[2]
@@ -73,22 +92,34 @@ def plotMotion(N: int, translation_vectors: List[Vector], z_body_vectors: List[V
   ax.set_ylim(-LIM, LIM)
   ax.set_zlim(-LIM, LIM)
   
-  rocket = ax.quiver(*getVector(0), color='blue')
+  x_body = ax.quiver(*getXVector(0), color='red')
+  y_body = ax.quiver(*getYVector(0), color='green')
+  z_body = ax.quiver(*getZVector(0), color='blue')
   time = ax.text2D(0, 0, s=f"t = 0.00 s", transform=ax.transAxes)
   motor_status = ax.text2D(0, 0.05, s="Motor: OFF", color="red", transform=ax.transAxes)
 
   def update(index):
-    nonlocal rocket
+    nonlocal x_body
+    nonlocal y_body
+    nonlocal z_body
     nonlocal time
     nonlocal motor_status
     nonlocal ax
     
-    if rocket in ax.collections:
-      rocket.remove()
+    if x_body in ax.collections:
+      x_body.remove()
+    x, y, z, u, v, w = getXVector(index=index)
+    x_body = ax.quiver(*(x, y, z, u, v, w), color='red')
     
-    x, y, z, u, v, w = getVector(index=index)
+    if y_body in ax.collections:
+      y_body.remove()
+    x, y, z, u, v, w = getYVector(index=index)
+    y_body = ax.quiver(*(x, y, z, u, v, w), color='green')
     
-    rocket = ax.quiver(*(x, y, z, u, v, w), color='blue')
+    if z_body in ax.collections:
+      z_body.remove()
+    x, y, z, u, v, w = getZVector(index=index)
+    z_body = ax.quiver(*(x, y, z, u, v, w), color='blue')
     
     time.set_text(f"t = {getTime(index):.2f} s")
     

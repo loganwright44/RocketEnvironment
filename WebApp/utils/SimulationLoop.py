@@ -55,7 +55,9 @@ def simulationLoop(
   n = 0
 
   positions = []
-  headings = []
+  body_x = []
+  body_y = []
+  body_z = []
   targetx = []
   targety = []
   thetax = []
@@ -63,7 +65,10 @@ def simulationLoop(
   velocities = []
   accelerations = []
   omegas = []
+  alphas = []
   
+  x_body_axis = Vector(elements=(1, 0, 0))
+  y_body_axis = Vector(elements=(0, 1, 0))
   z_body_axis = Vector(elements=(0, 0, 1))
   r = design.r
   v = design.v
@@ -109,7 +114,9 @@ def simulationLoop(
       OMEGA=omega
     )
     
-    headings.append(rotateVector(q=q, v=z_body_axis))
+    body_x.append(rotateVector(q=q, v=x_body_axis))
+    body_y.append(rotateVector(q=q, v=y_body_axis))
+    body_z.append(rotateVector(q=q, v=z_body_axis))
     positions.append(r)
     targetx.append(tvc.targetx)
     targety.append(tvc.targety)
@@ -118,6 +125,7 @@ def simulationLoop(
     velocities.append(v)
     accelerations.append(Vector(elements=(a[0], a[1], a[2])))
     omegas.append(omega)
+    alphas.append(alpha)
     
     design.step(dt=dt)
     tvc.step(dt=dt)
@@ -142,18 +150,31 @@ def simulationLoop(
   print(f"Simulation took {time() - start:.3} seconds!")
   
   start = time()
-  plotMotion(N=n, translation_vectors=positions, z_body_vectors=headings, dt=dt, burn_time=tvc.burn_time, save=save, filename=filename)
+  plotMotion(
+    N=n,
+    translation_vectors=positions,
+    x_body_vectors=body_x,
+    y_body_vectors=body_y,
+    z_body_vectors=body_z,
+    dt=dt,
+    burn_time=tvc.burn_time,
+    save=save,
+    filename=filename
+  )
   
   data = pd.DataFrame({
     "position": positions,
-    "heading": headings,
+    "body_x": body_x,
+    "body_y": body_y,
+    "body_z": body_z,
     "targetx": targetx,
     "targety": targety,
     "thetax": thetax,
     "thetay": thetay,
     "velocity": velocities,
     "acceleration": accelerations,
-    "omega": omegas
+    "omega": omegas,
+    "alphas": alphas
   })
   
   data.to_csv("./WebApp/assets/simulation.csv", sep=",")
