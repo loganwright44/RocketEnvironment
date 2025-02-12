@@ -3,6 +3,8 @@ from dash import html, dcc, callback, Input, Output
 from dash.dependencies import State, ALL
 
 from utils.Builder import *
+from utils.ElementTypes import *
+from utils.Element import *
 
 import numpy as np
 
@@ -21,9 +23,6 @@ DashTypes = {
   "str": "text",
   "bool": "number"
 }
-
-from utils.ElementTypes import *
-from utils.Element import *
 
 ElementDictTypes = {
   "CylinderDictD": CylinderDictD,
