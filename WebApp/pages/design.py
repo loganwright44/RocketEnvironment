@@ -117,7 +117,7 @@ layout = html.Div([
   ]),
   html.Div([
     dcc.Dropdown(
-      options=["F15", "E12"],
+      options=["F15", "E12", "E9"],
       placeholder="Select motor type...",
       searchable=True,
       className="dropdown",
