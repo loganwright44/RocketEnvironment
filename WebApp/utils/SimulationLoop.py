@@ -27,7 +27,7 @@ def simulationLoop(
     design: Design,
     tvc: ThrustVectorController,
     motor_idx: int,
-    dt: float = 1e-2,
+    dt: float = 1e-3,
     save: bool = False,
     filename: str = None
   ) -> None:
@@ -66,6 +66,7 @@ def simulationLoop(
   accelerations = []
   omegas = []
   alphas = []
+  cgs = []
   
   x_body_axis = Vector(elements=(1, 0, 0))
   y_body_axis = Vector(elements=(0, 1, 0))
@@ -100,7 +101,7 @@ def simulationLoop(
     a = F / mass
     a = Vector(elements=(a[0], a[1], a[2]))
     
-    if n < 10 and a.v[2] < 0.0:
+    if n < 100 and a.v[2] < 0.0:
       # if the motor is starting, do not acclerate down because of gravity - the earth provides a normal force equal to gravity
       a.v[2] = 0.0
     
@@ -126,6 +127,9 @@ def simulationLoop(
     accelerations.append(Vector(elements=(a[0], a[1], a[2])))
     omegas.append(omega)
     alphas.append(alpha)
+    cgs.append(cg)
+    
+    tvc.updateSetpoint(targetx=np.sin(t) * DEGREES_TO_RADIANS, targety=np.cos(t) * DEGREES_TO_RADIANS)
     
     design.step(dt=dt)
     tvc.step(dt=dt)
@@ -174,7 +178,8 @@ def simulationLoop(
     "velocity": velocities,
     "acceleration": accelerations,
     "omega": omegas,
-    "alphas": alphas
+    "alpha": alphas,
+    "cg": cgs
   })
   
   data.to_csv("./WebApp/assets/simulation.csv", sep=",")

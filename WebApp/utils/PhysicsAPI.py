@@ -356,11 +356,13 @@ class PhysicsAPI:
       req["save"] = True
     if "filename" not in req.keys():
       req["filename"] = None
+    if "dt" not in req.keys():
+      req["dt"] = 1e-2
     
     if self.is_listening:
-      simulationLoop(serial_manager=self.serial_manager, design=self.design, tvc=self.tvc, motor_idx=self.motor_index, dt=1e-2, save=req["save"], filename=req["filename"])
+      simulationLoop(serial_manager=self.serial_manager, design=self.design, tvc=self.tvc, motor_idx=self.motor_index, dt=req["dt"], save=req["save"], filename=req["filename"])
     else:
-      simulationLoop(serial_manager=None, design=self.design, tvc=self.tvc, motor_idx=self.motor_index, dt=1e-2, save=req["save"], filename=req["filename"])
+      simulationLoop(serial_manager=None, design=self.design, tvc=self.tvc, motor_idx=self.motor_index, dt=req["dt"], save=req["save"], filename=req["filename"])
     
 
 
@@ -370,7 +372,7 @@ __all__ = [
 
 if __name__ == "__main__":
   api = PhysicsAPI()
-  api.postMotor({"motor": "F15"})
+  api.postMotor({"motor": "E12"})
   api.postMakeTVC()
   api.postAddElement({
     "flight_computer": ConfigDict(
@@ -405,6 +407,6 @@ if __name__ == "__main__":
   if res["res"]:
     api.postStartListening()
   
-  api.getSimulationResults()
+  api.getSimulationResults({"dt": 1e-2})
   
   print("Done!")

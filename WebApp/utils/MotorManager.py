@@ -41,7 +41,7 @@ def getLinearInterpolations(data: DataFrame) -> Tuple[List[float], List[float], 
   THRUST = []
   for index in range(len(data) - 1):
     m = (data["Thrust (N)"][index + 1] - data["Thrust (N)"][index]) / (data["Time (s)"][index + 1] - data["Time (s)"][index])
-    t = data["Time (s)"][index]
+    t = data["Time (s)"][index + 1]
     thrust = data["Thrust (N)"][index]
     
     M.append(m)
@@ -85,14 +85,15 @@ class MotorManager:
     Returns:
         float: thrust in Newtons
     """
-    for index, _t in enumerate(self.time_intercepts):
-      if t <= _t and t >= 0.0:
-        T = self.thrust_intercepts[index] + self.slopes[index] * (t - self.time_intercepts[index])
-        return T if T >= 0 else 0.0
-      else:
-        pass
-    
-    return 0.0
+    if t < self.burn_time:
+      for index, _t in enumerate(self.time_intercepts):
+        if t <= _t and t >= 0:
+          T = self.thrust_intercepts[index] + self.slopes[index] * (t - self.time_intercepts[index - 1])
+          return T if T >= 0 else 0.0
+        else:
+          pass
+    else:
+      return 0.0
   
   def getElementData(self) -> Dict[str, ConfigDict]:
     """ forms a single element of the design constraints for the motor, only requiring repositioning and rotating to initial setup
@@ -120,3 +121,18 @@ __all__ = [
   "MotorManager",
   "AVAILABLE"
 ]
+
+if __name__ == "__main__":
+  import matplotlib.pyplot as plt
+  mm = MotorManager("E9")
+  t = 0.0
+  ts = []
+  dt = 1e-2
+  T = []
+  while t < 3.5:
+    T.append(mm.getThrust(t=t))
+    ts.append(t)
+    t += dt
+  
+  plt.plot(ts, T)
+  plt.show()
