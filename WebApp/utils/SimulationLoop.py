@@ -129,7 +129,7 @@ def simulationLoop(
     alphas.append(alpha)
     cgs.append(cg)
     
-    #tvc.updateSetpoint(targetx=np.sin(t) * DEGREES_TO_RADIANS, targety=np.cos(t) * DEGREES_TO_RADIANS)
+    #tvc.updateSetpoint(targetx=1e-1 * DEGREES_TO_RADIANS, targety=1e-1 * DEGREES_TO_RADIANS)
     
     design.step(dt=dt)
     tvc.step(dt=dt)

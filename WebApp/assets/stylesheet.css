@@ -317,3 +317,17 @@ video {
   height: 50px;
   justify-content: center;
 }
+
+.motor-data-container {
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+.dataset-link {
+  padding: 10px;
+  color: aquamarine;
+  font-size: medium;
+}

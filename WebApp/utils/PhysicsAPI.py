@@ -372,7 +372,7 @@ __all__ = [
 
 if __name__ == "__main__":
   api = PhysicsAPI()
-  api.postMotor({"motor": "E12"})
+  api.postMotor({"motor": "F15"})
   api.postMakeTVC()
   api.postAddElement({
     "flight_computer": ConfigDict(

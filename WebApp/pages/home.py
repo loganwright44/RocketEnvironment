@@ -10,7 +10,7 @@ layout = html.Div([
     html.H1("Advanced Rocketry Control and Design Test Platform"),
     html.Div([
       html.Video(
-        src="/assets/temp.mp4",
+        src="/assets/demo.mp4",
         controls=False,
         autoPlay=True,
         loop=True,
