@@ -66,6 +66,8 @@ def plotMotion(
   filename: str = None
 ) -> None:
   matplotlib.use("Agg")
+  plt.style.use('dark_background')
+  
   fig = plt.figure()
   ax = fig.add_subplot(projection="3d")
 
