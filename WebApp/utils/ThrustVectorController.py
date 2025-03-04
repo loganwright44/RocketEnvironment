@@ -34,6 +34,7 @@ class ThrustVectorController:
       self.targetx, self.targety = 0.0, 0.0
       self.max_speed = max_refresh_speed * np.pi / 180.0 # rad/s
       self.q = Quaternion(default=True)
+      self.offset = np.array([0.0, 0.0, 0.0])
     else:
       pass
   

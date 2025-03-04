@@ -11,7 +11,7 @@ app.layout = html.Div([
   html.Title(children="Rocket Simulation App"),
   html.Div([
     html.Div([
-      dcc.Link(f"{page['name']}", href=page["relative_path"], className="nav-link", id=f"{page['name']}-link", refresh=True) for page in dash.page_registry.values()
+      dcc.Link(f"{str(page['name']).strip('_').title()}", href=page["relative_path"], className="nav-link", id=f"{page['name']}-link", refresh=True) for page in dash.page_registry.values()
     ], className="nav-container")
   ]),
   dash.page_container,
