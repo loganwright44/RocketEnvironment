@@ -52,7 +52,7 @@ video {
 .web-app {
   width: 100vw;
   min-height: 100vh;
-  background-color: black;
+  background-color: rgb(20, 20, 20);
   color: white;
   overflow-y: auto;
   overflow-x: hidden;

@@ -14,7 +14,7 @@ app.layout = html.Div([
       dcc.Link(f"{str(page['name']).strip('_').title()}", href=page["relative_path"], className="nav-link", id=f"{page['name']}-link", refresh=True) for page in dash.page_registry.values()
     ], className="nav-container")
   ]),
-  dash.page_container,
+  dash.page_container
 ], className="web-app")
 
 
@@ -29,4 +29,4 @@ def update_active_link(pathname):
 
 
 if __name__ == "__main__":
-  app.run(host="0.0.0.0", port=8050, dev_tools_hot_reload=False, debug=True)
+  app.run(host="0.0.0.0", port=8050, debug=True)
